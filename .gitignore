@@ -44,3 +44,4 @@ app-example
 *.agent
 *.agentinfo
 .cursorrules
+.env

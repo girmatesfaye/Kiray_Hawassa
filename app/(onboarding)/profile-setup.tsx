@@ -1,6 +1,7 @@
 import { View, Text } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '@/app/_layout';
+import { Colors, Typography } from '@/constants/colors';
 
 export default function ProfileSetupScreen() {
   const { role, profile, isLoading } = useAuth();
@@ -13,9 +14,9 @@ export default function ProfileSetupScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f9f9ff', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#151c27', marginBottom: 8 }}>Setup Profile</Text>
-      <Text style={{ fontSize: 16, color: '#5a4139', textAlign: 'center' }}>
+    <View style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+      <Text style={[Typography.headlineLg, { color: Colors.onSurface, marginBottom: 8 }]}>Setup Profile</Text>
+      <Text style={[Typography.bodyMd, { color: Colors.onSurfaceVariant, textAlign: 'center' }]}>
         Tell us a bit about yourself to complete your profile.
       </Text>
     </View>

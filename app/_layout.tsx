@@ -1,12 +1,12 @@
-import '../global.css';
-import { useEffect, useState, createContext, useContext } from 'react';
-import { View, Text } from 'react-native';
-import { SplashScreen, Stack, Redirect } from 'expo-router';
-import { useFonts } from 'expo-font';
-import { supabase } from '@/lib/supabase/client';
-import { Profile, Role, AuthContextType } from '@/lib/supabase/types';
-import { FontFamily } from '@/constants/typography';
 import { Colors } from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
+import { supabase } from '@/lib/supabase/client';
+import { AuthContextType, Profile, Role } from '@/lib/supabase/types';
+import { useFonts } from 'expo-font';
+import { Redirect, SplashScreen, Stack } from 'expo-router';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { Text, View } from 'react-native';
+import '../global.css';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -21,12 +21,17 @@ export function useAuth() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({    
     [FontFamily.regular]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
-    [FontFamily.medium]: require('../assets/fonts/PlusJakartaSans-Medium.ttf'),
-    [FontFamily.semiBold]: require('../assets/fonts/PlusJakartaSans-SemiBold.ttf'),
-    [FontFamily.bold]: require('../assets/fonts/PlusJakartaSans-Bold.ttf'),
-    [FontFamily.extraBold]: require('../assets/fonts/PlusJakartaSans-ExtraBold.ttf'),
+    [FontFamily.medium]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
+    [FontFamily.semiBold]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
+    [FontFamily.bold]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
+    [FontFamily.extraBold]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
+    // [FontFamily.regular]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
+    // [FontFamily.medium]: require('../assets/fonts/PlusJakartaSans-Medium.ttf'),
+    // [FontFamily.semiBold]: require('../assets/fonts/PlusJakartaSans-SemiBold.ttf'),
+    // [FontFamily.bold]: require('../assets/fonts/PlusJakartaSans-Bold.ttf'),
+    // [FontFamily.extraBold]: require('../assets/fonts/PlusJakartaSans-ExtraBold.ttf'),
   });
 
   const [session, setSession] = useState<AuthContextType['session']>(null);

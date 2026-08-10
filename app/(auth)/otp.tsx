@@ -1,17 +1,18 @@
 import { View, Text } from 'react-native';
-import { Redirect } from 'expo-router';
 import { useAuth } from '@/app/_layout';
+import { Colors, Typography } from '@/constants/colors';
 
 export default function OtpScreen() {
-  const { isLoading, session } = useAuth();
+  const { isLoading } = useAuth();
 
   if (isLoading) return <View />;
-  if (session) return <Redirect href="/(landlord)/home" />;
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9f9ff', padding: 20 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#151c27', marginBottom: 8 }}>Verify OTP</Text>
-      <Text style={{ fontSize: 16, color: '#5a4139', textAlign: 'center' }}>
+    <View style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+      <Text style={[Typography.headlineLg, { color: Colors.onSurface, marginBottom: 8 }]}>
+        Verify OTP
+      </Text>
+      <Text style={[Typography.bodyMd, { color: Colors.onSurfaceVariant, textAlign: 'center' }]}>
         Enter the code sent to your phone.
       </Text>
     </View>
