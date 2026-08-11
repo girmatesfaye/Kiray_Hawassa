@@ -148,16 +148,17 @@ export default function RootLayout() {
   };
 
   return (
-    <AuthContext.Provider value={authContextValue}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(onboarding)" />
-        <Stack.Screen name="(landlord)" />
-        <Stack.Screen name="(tenant)" />
-        <Stack.Screen name="(staff)" />
-      </Stack>
-      <RootRedirect />
-    </AuthContext.Provider>
+      <AuthContext.Provider value={authContextValue}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(onboarding)" />
+          <Stack.Screen name="(landlord)" />
+          <Stack.Screen name="(tenant)" />
+          <Stack.Screen name="(staff)" />
+          <Stack.Screen name="notifications" />
+        </Stack>
+        <RootRedirect />
+      </AuthContext.Provider>
   );
 }
 

@@ -1,5 +1,5 @@
 import { Tabs, Redirect } from 'expo-router';
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 import { useAuth } from '@/app/_layout';
 import { Colors } from '@/constants/colors';
 
@@ -17,11 +17,47 @@ export default function TenantLayout() {
   }
 
   return (
-    <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: Colors.primary }}>
-      <Tabs.Screen name="browse" options={{ title: 'Browse' }} />
-      <Tabs.Screen name="saved" options={{ title: 'Saved' }} />
-      <Tabs.Screen name="interests" options={{ title: 'Interests' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: '#b45309',
+        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarStyle: { borderTopWidth: 1, borderTopColor: '#F3F4F6', paddingBottom: 4 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+      }}
+    >
+      <Tabs.Screen
+        name="browse"
+        options={{
+          title: 'Browse',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🏠</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="saved"
+        options={{
+          title: 'Saved',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🔖</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="interests"
+        options={{
+          title: 'Interests',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>❤️</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👤</Text>,
+        }}
+      />
+      {/* Non-tab routes — hidden from tab bar */}
+      <Tabs.Screen name="listing/[id]" options={{ href: null }} />
+      <Tabs.Screen name="search" options={{ href: null }} />
     </Tabs>
   );
 }
+
