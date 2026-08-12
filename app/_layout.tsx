@@ -85,6 +85,9 @@ export default function RootLayout() {
       } catch (e) {
         console.error('Auth prepare error:', e);
       } finally {
+        try {
+          await SplashScreen.hideAsync();
+        } catch {}
         setIsLoading(false);
       }
     }
