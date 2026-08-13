@@ -1,0 +1,176 @@
+# Kiray Hawassa — Full Task Brief Implementation
+
+End-to-end implementation of Tasks 0–7 from [kiray-hawassa-agent-task-brief.md](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/kiray-hawassa-agent-task-brief.md), following the recommended build order.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Contact-reveal model (from brief):** The working default is:
+> - Tenant taps "I'm Interested" → connector's phone becomes visible immediately
+> - Landlord/tenant phones hidden from each other until a `links` record exists (Close Deal)
+> - Once linked, both see each other's number
+>
+> The brief says "CONFIRM with product owner" — proceeding with this default unless you say otherwise.
+
+> [!WARNING]
+> **Supabase URL issue:** Your `.env` has `EXPO_PUBLIC_SUPABASE_URL` set to the REST endpoint (`/rest/v1/`). The Supabase JS client needs the **project root** URL (e.g., `https://mbavfuusntboknsjiesz.supabase.co`). This will need fixing for real Supabase calls to work. I'll fix this as part of the work.
+
+> [!IMPORTANT]
+> **Edge Function (`close-deal`):** Task 6 requires a Supabase Edge Function + Postgres transaction function. This requires deploying via `supabase functions deploy` to your Supabase project. I'll create the function code and SQL migration files — you'll need Supabase CLI access to deploy them.
+
+## Open Questions
+
+> [!IMPORTANT]
+> **Push/SMS notifications (Task 6, step 5):** The brief says "whatever's already wired up" — currently nothing is wired for push/SMS. I'll create a notification stub (insert a row into a `notifications` table) so the transaction is complete, but real push delivery will need a separate integration later.
+
+---
+
+## Proposed Changes
+
+Build order per the brief: **Task 0 → Task 1 → Task 6 → Tasks 2–5 → Task 7**
+
+---
+
+### Task 0 — Security: Remove Staff from public role-choice
+
+#### [MODIFY] [role-choice.tsx](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/app/(onboarding)/role-choice.tsx)
+- Remove the entire "Staff / Connector" `TouchableOpacity` card (lines 59–72)
+- Only `tenant` and `landlord` remain selectable
+
+#### [MODIFY] [types.ts](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/lib/supabase/types.ts)
+- Add new profile fields to the `Profile` interface: `fayida_id`, `occupation`, `subcity`, `id_photo_url` (needed for Task 1)
+
+#### [MODIFY] [_layout.tsx](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/app/_layout.tsx)
+- In `updateRole`: add a guard that rejects `'staff'` from client-side role updates. Staff can only be set server-side.
+
+#### [NEW] [001_schema_and_rls.sql](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/supabase/migrations/001_schema_and_rls.sql)
+- Add columns to `profiles`: `fayida_id`, `occupation`, `subcity`, `id_photo_url`
+- Create `leads` table: `id`, `tenant_id`, `listing_id`, `connector_id`, `status` (enum: `waiting_for_call`, `visit_scheduled`, `linked`, `not_selected`), `created_at`, `updated_at`
+- Create `links` table: `id`, `tenant_id`, `landlord_id`, `listing_id`, `staff_id`, `commission_amount`, `created_at`
+- Create `payouts` table: `id`, `link_id`, `staff_id`, `amount`, `status` (enum: `pending`, `paid`), `created_at`, `paid_at`
+- Create `notifications` table: `id`, `user_id`, `title`, `body`, `read`, `created_at`
+- Add RLS policy: `profiles.role` cannot be set to `'staff'` by authenticated users via client update — only service-role key can do this
+- Add RLS policies for all new tables
+
+---
+
+### Task 1 — Split Profile Setup by role
+
+#### [MODIFY] [profile-setup.tsx](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/app/(onboarding)/profile-setup.tsx)
+- Replace generic form with role-conditional fields:
+  - **Tenant:** Full name, Occupation, FAYIDA ID (masked `ET-••••-••••-####`), ID photo upload, trust callout
+  - **Landlord:** Full name, Sub-city / Kebele, optional ID photo upload with helper text
+- Both write to `profiles` table with role-appropriate columns
+- Mark `is_complete = true` on successful save
+
+---
+
+### Task 6 — Close Deal transaction (do before Tasks 2–5)
+
+#### [NEW] [002_close_deal_function.sql](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/supabase/migrations/002_close_deal_function.sql)
+- Create Postgres function `close_deal(p_lead_id, p_tenant_id, p_landlord_id, p_listing_id, p_staff_id, p_commission_amount)` wrapped in a transaction:
+  1. Insert `links` row
+  2. Update `listings.status = 'rented_out'`
+  3. Insert `payouts` row with `status = 'pending'`
+  4. Update lead status to `linked`
+  5. Insert notification rows for tenant and landlord
+
+#### [NEW] [close-deal/index.ts](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/supabase/functions/close-deal/index.ts)
+- Supabase Edge Function that receives deal parameters, validates, and calls the Postgres `close_deal` function via `supabase.rpc()`
+
+#### [NEW] [supabase.ts (service functions)](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/lib/supabase/api.ts)
+- Client-side API functions:
+  - `createInterest(tenantId, listingId)` — creates a lead
+  - `closeDeal(params)` — calls the Edge Function
+  - `getLeads(staffId, filter)` — fetch leads with filtering
+  - `updateLeadStatus(leadId, status)` — for staff actions
+  - `getInterests(tenantId)` — fetch tenant's interests with contact info
+  - `getPayouts(staffId, filter)` — fetch payouts
+  - `markPayoutPaid(payoutId)` — flip payout to paid
+  - `getListingWithLeads(listingId)` — for landlord view
+  - `getConnectorContact(leadId)` — reveal connector phone
+
+---
+
+### Task 2 — Tenant: declined/closed states in Interests tab
+
+#### [MODIFY] [interests.tsx](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/app/(tenant)/interests.tsx)
+- Replace mock data with Supabase query via `getInterests()`
+- Render proper status pills: `waiting_for_call` (amber), `visit_scheduled` (blue), `linked` (emerald), `not_selected` (gray)
+- For `linked` status: reveal landlord's name + phone + call button inline
+- For `not_selected`: show muted gray pill "Not Selected"
+
+---
+
+### Task 3 — Tenant: reveal connector contact on interest
+
+#### [MODIFY] [[id].tsx (tenant listing)](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/app/(tenant)/listing/[id].tsx)
+- "I'm Interested" button now calls `createInterest()` instead of just navigating
+- On success, show a confirmation sheet/toast with:
+  - Connector's masked-but-callable phone number + tap-to-call button
+  - Fallback: "Staff will reach out shortly" if no connector assigned yet
+
+#### [NEW] [ConnectorContactSheet.tsx](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/components/ui/ConnectorContactSheet.tsx)
+- Reusable bottom sheet showing connector contact with call button
+- Used by both tenant listing detail and landlord listing detail
+
+---
+
+### Task 4 — Landlord: visibility gap on Home dashboard
+
+#### [MODIFY] [home.tsx (landlord)](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/app/(landlord)/home.tsx)
+- Add a one-line status under each listing card stats: e.g., "3 people interested · assigned to connector"
+- Link to listing detail page
+
+#### [MODIFY] [[id].tsx (landlord listing)](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/app/(landlord)/listing/[id].tsx)
+- Full rebuild: show listing details, interest activity, connector contact point
+- Add commission-receipt line when `payouts.status = 'paid'`
+
+#### [MODIFY] [_layout.tsx (landlord)](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/app/(landlord)/_layout.tsx)
+- Add `listing/[id]` as a hidden non-tab route (like tenant layout does)
+
+---
+
+### Task 5 — Staff: Dropped filter and confirmation
+
+#### [MODIFY] [leads.tsx (staff)](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/app/(staff)/leads.tsx)
+- Add `Dropped` as fourth filter chip: `['All', 'New', 'Meeting Scheduled', 'Deal Closed', 'Dropped']`
+- Replace mock data with Supabase query via `getLeads()`
+- Filter leads by status
+
+#### [MODIFY] [[id].tsx (staff lead)](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/app/(staff)/lead/[id].tsx)
+- Add "Mark Not Interested" button alongside existing actions
+- Trigger confirmation dialog before setting status to `not_selected`
+- Dropped leads remain visible, can be revived
+
+#### [MODIFY] [close-deal/[leadId].tsx](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/app/(staff)/close-deal/[leadId].tsx)
+- Wire up to call the `closeDeal()` Edge Function instead of just navigating
+
+---
+
+### Task 7 — Staff: Payout status management
+
+#### [MODIFY] [earnings.tsx (staff)](file:///c:/Users/Dev Girma/Desktop/Kiray_Hawassa/app/(staff)/earnings.tsx)
+- Split payouts into `Pending` and `Paid` sections with a filter toggle
+- Replace mock data with Supabase query via `getPayouts()`
+- Add "Mark as Paid" action per pending payout row
+- Show totals for each section
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- `npx expo lint` — ensure no lint errors
+- `npx expo start --no-dev` — verify the bundle compiles without errors
+- TypeScript check: `npx tsc --noEmit`
+
+### Manual Verification
+- **Task 0:** Verify role-choice screen only shows Tenant and Landlord cards
+- **Task 1:** Verify tenant sees occupation/FAYIDA fields, landlord sees subcity/optional ID
+- **Task 2:** Verify interest statuses render correctly with proper pills and linked contact reveal
+- **Task 3:** Verify "I'm Interested" shows connector contact sheet/fallback
+- **Task 4:** Verify landlord home shows interest counts, listing detail shows connector + commission receipt
+- **Task 5:** Verify Dropped filter works, confirmation dialog appears before dropping a lead
+- **Task 6:** Verify close-deal SQL function and Edge Function files are correct
+- **Task 7:** Verify earnings screen splits pending/paid, Mark as Paid works

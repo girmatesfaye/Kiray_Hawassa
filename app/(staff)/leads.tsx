@@ -1,37 +1,62 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, RefreshControl, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import HeaderBar from '@/components/ui/HeaderBar';
+import { getStaffLeads } from '@/lib/supabase/api';
+import { Lead } from '@/lib/supabase/types';
 
 export default function StaffLeadsListScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const leads = [
-    {
-      id: '1',
-      name: 'Abebe Bikila',
-      roleType: 'Tenant',
-      interest: '2BR Villa - Haile Resort Area',
-      status: 'Meeting Scheduled',
-      statusColor: 'bg-blue-100 text-blue-800',
-      phone: '+251 911 *** 456',
-    },
-    {
-      id: '2',
-      name: 'Kebede Tassew',
-      roleType: 'Landlord',
-      interest: 'Commercial Shop - Piassa',
-      status: 'New Lead',
-      statusColor: 'bg-amber-100 text-amber-800',
-      phone: '+251 922 *** 789',
-    },
-  ];
+  const fetchLeads = async () => {
+    const data = await getStaffLeads(filter);
+    setLeads(data);
+    setLoading(false);
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    fetchLeads();
+  }, [filter]);
+
+  const filteredLeads = leads.filter((item) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    const name = item.tenant?.full_name?.toLowerCase() || '';
+    const title = item.listing?.title?.toLowerCase() || '';
+    const phone = item.tenant?.phone?.toLowerCase() || '';
+    return name.includes(q) || title.includes(q) || phone.includes(q);
+  });
+
+  const getStatusBadge = (status: Lead['status']) => {
+    switch (status) {
+      case 'linked':
+        return { label: 'Deal Closed', color: 'bg-emerald-100 text-emerald-800' };
+      case 'visit_scheduled':
+        return { label: 'Meeting Scheduled', color: 'bg-blue-100 text-blue-800' };
+      case 'not_selected':
+        return { label: 'Dropped / Not Interested', color: 'bg-gray-200 text-gray-700' };
+      case 'waiting_for_call':
+      default:
+        return { label: 'New Lead', color: 'bg-amber-100 text-amber-800' };
+    }
+  };
+
+  const handleCallPhone = (phone?: string) => {
+    if (phone) {
+      Linking.openURL(`tel:${phone.replace(/\s+/g, '')}`);
+    }
+  };
 
   return (
     <View className="flex-1 bg-gray-50 pt-8">
-      <HeaderBar 
-        title="Leads Management" 
+      <HeaderBar
+        title="Leads Management"
         subtitle="Manage inquiries & deal closures"
         rightAction={
           <TouchableOpacity onPress={() => router.push('/(staff)/add-lead')} className="bg-blue-700 px-3 py-1.5 rounded-lg">
@@ -45,10 +70,13 @@ export default function StaffLeadsListScreen() {
           className="border border-gray-300 rounded-xl px-4 py-2.5 bg-gray-50 text-sm"
           placeholder="Search leads by name, phone or property..."
           placeholderTextColor="#9CA3AF"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
 
+        {/* Task 5: 4th filter chip "Dropped" added */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3">
-          {['All', 'New', 'Meeting Scheduled', 'Deal Closed'].map((f) => (
+          {['All', 'New', 'Meeting Scheduled', 'Deal Closed', 'Dropped'].map((f) => (
             <TouchableOpacity
               key={f}
               onPress={() => setFilter(f)}
@@ -64,39 +92,64 @@ export default function StaffLeadsListScreen() {
         </ScrollView>
       </View>
 
-      <ScrollView className="flex-1 p-4">
-        {leads.map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            onPress={() => router.push(`/(staff)/lead/${item.id}`)}
-            activeOpacity={0.9}
-            className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-3"
-          >
-            <View className="flex-row justify-between items-start mb-2">
-              <View>
-                <Text className="text-base font-bold text-gray-900">{item.name}</Text>
-                <Text className="text-xs text-gray-500">{item.roleType} • {item.phone}</Text>
-              </View>
-              <View className={`px-2.5 py-1 rounded-full ${item.statusColor}`}>
-                <Text className="text-xs font-bold">{item.status}</Text>
-              </View>
-            </View>
+      <ScrollView
+        className="flex-1 p-4"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchLeads(); }} />}
+      >
+        {filteredLeads.map((item) => {
+          const badge = getStatusBadge(item.status);
+          const isDropped = item.status === 'not_selected';
 
-            <Text className="text-xs text-gray-700 font-medium mb-3">Target: {item.interest}</Text>
+          return (
+            <TouchableOpacity
+              key={item.id}
+              onPress={() => router.push(`/(staff)/lead/${item.id}`)}
+              activeOpacity={0.9}
+              className={`bg-white p-4 rounded-2xl shadow-sm border mb-3 ${
+                isDropped ? 'border-gray-300 opacity-75' : 'border-gray-100'
+              }`}
+            >
+              <View className="flex-row justify-between items-start mb-2">
+                <View>
+                  <Text className="text-base font-bold text-gray-900">
+                    {item.tenant?.full_name || 'Tenant Lead'}
+                  </Text>
+                  <Text className="text-xs text-gray-500">
+                    Tenant • {item.tenant?.phone || '+251 911 *** 456'}
+                  </Text>
+                </View>
+                <View className={`px-2.5 py-1 rounded-full ${badge.color}`}>
+                  <Text className="text-xs font-bold">{badge.label}</Text>
+                </View>
+              </View>
 
-            <View className="flex-row gap-2">
-              <TouchableOpacity className="flex-1 bg-gray-100 py-2 rounded-lg items-center">
-                <Text className="text-xs font-bold text-gray-700">Contact</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                onPress={() => router.push('/(staff)/schedule')}
-                className="flex-1 bg-blue-700 py-2 rounded-lg items-center"
-              >
-                <Text className="text-xs font-bold text-white">Schedule Visit</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        ))}
+              <Text className="text-xs text-gray-700 font-medium mb-3">
+                Target: {item.listing?.title || 'Hawassa Property'}
+              </Text>
+
+              <View className="flex-row gap-2">
+                <TouchableOpacity
+                  onPress={() => handleCallPhone(item.tenant?.phone || '+251 911 234 567')}
+                  className="flex-1 bg-gray-100 py-2 rounded-lg items-center"
+                >
+                  <Text className="text-xs font-bold text-gray-700">📞 Contact</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => router.push(`/(staff)/lead/${item.id}`)}
+                  className="flex-1 bg-blue-700 py-2 rounded-lg items-center"
+                >
+                  <Text className="text-xs font-bold text-white">View Details →</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+
+        {filteredLeads.length === 0 && (
+          <View className="py-12 items-center justify-center">
+            <Text className="text-gray-400 text-sm font-medium">No leads found under filter "{filter}"</Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );

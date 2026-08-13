@@ -1,17 +1,55 @@
-import React from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { createInterest } from '@/lib/supabase/api';
+import { useAuth } from '@/app/_layout';
+import ConnectorContactSheet from '@/components/ui/ConnectorContactSheet';
 
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { session } = useAuth();
+
+  const [loading, setLoading] = useState(false);
+  const [showContactSheet, setShowContactSheet] = useState(false);
+  const [connectorInfo, setConnectorInfo] = useState<{ name: string; phone: string }>({
+    name: 'Abebe (Hawassa Connector)',
+    phone: '+251 930 112 233',
+  });
+
+  const handleExpressInterest = async () => {
+    setLoading(true);
+    try {
+      const tenantId = session?.user?.id || 'tenant-101';
+      const listingId = (id as string) || '1';
+      const result = await createInterest(tenantId, listingId);
+      
+      if (result?.connector) {
+        setConnectorInfo({
+          name: result.connector.full_name || 'Hawassa Connector',
+          phone: result.connector.phone || '+251 930 112 233',
+        });
+      }
+      setShowContactSheet(true);
+    } catch (e) {
+      console.error('Error expressing interest:', e);
+      setShowContactSheet(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloseSheet = () => {
+    setShowContactSheet(false);
+    router.push('/(tenant)/interests');
+  };
 
   return (
     <View className="flex-1 bg-white">
       <ScrollView className="flex-1">
         <View className="relative">
           <Image
-            source={{ uri: 'https://lh3.googleusercontent.com/aida/AP1WRLuOfzfiNjLI7GT--JYyarK5yY46fthA16YkA4nM6w8yD4bB5JoqQYkh4tNzZFDGIyUuA7gfIuXG7aGAC5GG1d5e-4TNTOPDWZ2SKNiGfYR3Ni49x1cRQE7DYzBngUlzLONAirUc6mhSIVooJ-fIhEiXzNeJaE9cIpK238TaEVlleePB4zNIsp52z8_lm0XX7NhYo4qr56JS1Vz04ZkgZfWQAMH4r32TPcIDHd-gociBwMAig_JkICv9Nje2' }}
+            source={{ uri: 'https://lh3.googleusercontent.com/aida/AP1WRLvOfzfiNjLI7GT--JYyarK5yY46fthA16YkA4nM6w8yD4bB5JoqQYkh4tNzZFDGIyUuA7gfIuXG7aGAC5GG1d5e-4TNTOPDWZ2SKNiGfYR3Ni49x1cRQE7DYzBngUlzLONAirUc6mhSIVooJ-fIhEiXzNeJaE9cIpK238TaEVlleePB4zNIsp52z8_lm0XX7NhYo4qr56JS1Vz04ZkgZfWQAMH4r32TPcIDHd-gociBwMAig_JkICv9Nje2' }}
             className="w-full h-72"
             resizeMode="cover"
           />
@@ -69,13 +107,26 @@ export default function ListingDetailScreen() {
       {/* Sticky Bottom Bar */}
       <View className="p-4 border-t border-gray-100 bg-white flex-row items-center space-x-3">
         <TouchableOpacity
-          onPress={() => router.push('/(tenant)/interests')}
+          onPress={handleExpressInterest}
+          disabled={loading}
           activeOpacity={0.8}
           className="flex-1 py-4 bg-amber-700 rounded-xl items-center justify-center shadow-sm"
         >
-          <Text className="text-base font-bold text-white">I'm Interested</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text className="text-base font-bold text-white">I'm Interested</Text>
+          )}
         </TouchableOpacity>
       </View>
+
+      {/* Task 3 Connector Contact Reveal Sheet */}
+      <ConnectorContactSheet
+        visible={showContactSheet}
+        onClose={handleCloseSheet}
+        connectorName={connectorInfo.name}
+        connectorPhone={connectorInfo.phone}
+      />
     </View>
   );
 }

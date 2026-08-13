@@ -56,20 +56,8 @@ export default function RoleChoiceScreen() {
         </Text>
       </TouchableOpacity>
 
-      {/* Staff / Connector Card */}
-      <TouchableOpacity
-        onPress={() => handleSelectRole('staff')}
-        activeOpacity={0.8}
-        className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm mb-6 active:border-amber-600"
-      >
-        <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mb-3">
-          <Text className="text-2xl">💼</Text>
-        </View>
-        <Text className="text-xl font-bold text-gray-900 mb-1">Connector / Agent (Staff)</Text>
-        <Text className="text-sm text-gray-600">
-          Help landlords and tenants close rental deals and earn commission payouts.
-        </Text>
-      </TouchableOpacity>
+      {/* Staff accounts are provisioned out-of-band (Supabase Studio / admin). 
+           No self-service staff enrollment. */}
     </ScrollView>
   );
 }

@@ -21,6 +21,8 @@ export default function LandlordLayout() {
       <Tabs.Screen name="home" options={{ title: 'Home' }} />
       <Tabs.Screen name="post" options={{ title: 'Post' }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+      {/* Hidden route for listing details */}
+      <Tabs.Screen name="listing/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

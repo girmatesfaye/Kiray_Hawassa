@@ -1,5 +1,9 @@
 export type Role = 'landlord' | 'tenant' | 'staff';
 
+export type LeadStatus = 'waiting_for_call' | 'visit_scheduled' | 'linked' | 'not_selected';
+
+export type PayoutStatus = 'pending' | 'paid';
+
 export interface Profile {
   id: string;
   role: Role | null;
@@ -9,10 +13,82 @@ export interface Profile {
   is_complete: boolean;
   created_at: string;
   updated_at: string;
+  // Tenant-only fields
+  fayida_id: string | null;
+  occupation: string | null;
+  id_photo_url: string | null;
+  // Shared / Landlord fields
+  subcity: string | null;
+}
+
+export interface Lead {
+  id: string;
+  tenant_id: string;
+  listing_id: string;
+  connector_id: string | null;
+  status: LeadStatus;
+  created_at: string;
+  updated_at: string;
+  // Joined fields (optional, from queries)
+  listing?: Listing;
+  tenant?: Profile;
+  connector?: Profile;
+  landlord?: Profile;
+}
+
+export interface Listing {
+  id: string;
+  landlord_id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  price: number;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  area_sqm: number | null;
+  status: 'available' | 'rented_out';
+  image_url: string | null;
+  amenities: string[] | null;
+  created_at: string;
+}
+
+export interface Link {
+  id: string;
+  tenant_id: string;
+  landlord_id: string;
+  listing_id: string;
+  staff_id: string;
+  commission_amount: number;
+  created_at: string;
+  // Joined
+  tenant?: Profile;
+  landlord?: Profile;
+  listing?: Listing;
+}
+
+export interface Payout {
+  id: string;
+  link_id: string;
+  staff_id: string;
+  amount: number;
+  status: PayoutStatus;
+  created_at: string;
+  paid_at: string | null;
+  // Joined
+  link?: Link;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  body: string;
+  read: boolean;
+  created_at: string;
 }
 
 export interface AuthContextType {
-  session: ReturnType<typeof import('@supabase/gotrue-js').Session> | null;
+  session: ReturnType<typeof import('@supabase/supabase-js')['createClient']> extends { auth: { getSession: () => Promise<{ data: { session: infer S } }> } } ? S : any;
   role: Role | null;
   profile: Profile | null;
   isLoading: boolean;

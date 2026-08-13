@@ -114,6 +114,10 @@ export default function RootLayout() {
 
   const updateRole = async (newRole: Role) => {
     if (!session?.user) throw new Error('No session');
+    // Security: Staff accounts are provisioned out-of-band only
+    if (newRole === 'staff') {
+      throw new Error('Staff role cannot be set through the app. Contact an administrator.');
+    }
     const { data, error } = await supabase
       .from('profiles')
       .upsert({ id: session.user.id, role: newRole, is_complete: false })
