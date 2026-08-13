@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native';
+import { View, Text, Modal, type ViewStyle } from 'react-native';
 import { Colors, Typography, Spacing, Radius } from '@/constants/colors';
 import { Button } from '@/components/ui/Button';
 
