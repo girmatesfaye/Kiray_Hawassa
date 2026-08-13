@@ -1,54 +1,150 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import HeaderBar from '@/components/ui/HeaderBar';
+import { useAuth } from '@/app/_layout';
+import { uploadListingPhoto } from '@/features/listings/api';
+import { useListingPostWizard, WizardPhoto } from '@/features/listings/postWizard';
 
 export default function PostListingStep1Photos() {
   const router = useRouter();
+  const { session } = useAuth();
+  const { draft, updateDraft } = useListingPostWizard();
+  const [uploading, setUploading] = useState(false);
+
+  const pickPhotos = async () => {
+    const landlordId = session?.user?.id;
+    if (!landlordId) {
+      Alert.alert('Sign in required', 'Please sign in as a landlord before uploading listing photos.');
+      return;
+    }
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Photos permission needed', 'Allow photo access to upload listing images.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.85,
+      selectionLimit: 8,
+    });
+
+    if (result.canceled) return;
+
+    setUploading(true);
+    const currentPhotos = draft.photos.map((photo) => ({ ...photo, isCover: false }));
+    const nextPhotos: WizardPhoto[] = [...currentPhotos];
+
+    try {
+      for (const [index, asset] of result.assets.entries()) {
+        const photo: WizardPhoto = {
+          id: `${Date.now()}-${index}`,
+          uri: asset.uri,
+          name: asset.fileName || `listing-photo-${index}.jpg`,
+          type: asset.mimeType || 'image/jpeg',
+          progress: 15,
+          isCover: nextPhotos.length === 0,
+        };
+
+        nextPhotos.push(photo);
+        updateDraft({ photos: [...nextPhotos] });
+
+        const uploaded = await uploadListingPhoto(landlordId, draft.id, photo, nextPhotos.length - 1);
+        nextPhotos[nextPhotos.length - 1] = {
+          ...photo,
+          uploadedPath: uploaded.storagePath,
+          publicUrl: uploaded.publicUrl,
+          progress: 100,
+        };
+        updateDraft({ photos: [...nextPhotos] });
+      }
+    } catch (error) {
+      Alert.alert('Upload failed', (error as Error).message || 'Could not upload that photo.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const setCover = (photoId: string) => {
+    updateDraft({
+      photos: draft.photos.map((photo) => ({ ...photo, isCover: photo.id === photoId })),
+    });
+  };
 
   return (
     <View className="flex-1 bg-white pt-8 justify-between">
-      <View>
-        <HeaderBar title="Post Property - Step 1/3" subtitle="Upload High Quality Photos" showBack />
+      <View className="flex-1">
+        <HeaderBar title="Post Property - Step 1/4" subtitle="Upload high quality photos" showBack />
 
-        <ScrollView className="p-4">
+        <ScrollView className="p-4 flex-1">
           <Text className="text-xl font-bold text-gray-900 mb-1">Upload Photos & Media</Text>
           <Text className="text-sm text-gray-500 mb-6">
-            Listings with clear photos get up to 5x more tenant inquiries in Hawassa.
+            Listings with clear photos get more tenant inquiries in Hawassa.
           </Text>
 
-          {/* Upload Area */}
-          <TouchableOpacity 
+          <TouchableOpacity
+            onPress={pickPhotos}
+            disabled={uploading}
             activeOpacity={0.8}
-            className="border-2 border-dashed border-emerald-300 bg-emerald-50/50 rounded-2xl p-8 items-center justify-center mb-6"
+            className="border-2 border-dashed border-emerald-300 bg-emerald-50 rounded-2xl p-8 items-center justify-center mb-6"
           >
-            <Text className="text-4xl mb-2">📸</Text>
-            <Text className="text-base font-bold text-emerald-800">Tap to Select Photos</Text>
-            <Text className="text-xs text-emerald-600 mt-1">Upload exterior, living room, bedrooms & bathrooms</Text>
+            {uploading ? <ActivityIndicator color="#047857" /> : <Text className="text-3xl mb-2">+</Text>}
+            <Text className="text-base font-bold text-emerald-800">
+              {uploading ? 'Uploading photos...' : 'Tap to Select Photos'}
+            </Text>
+            <Text className="text-xs text-emerald-600 mt-1">Exterior, rooms, bathroom, and utilities</Text>
           </TouchableOpacity>
 
-          {/* Preview grid */}
-          <Text className="text-sm font-bold text-gray-700 mb-2">Cover Photo Preview</Text>
-          <View className="relative rounded-2xl overflow-hidden mb-4">
-            <Image
-              source={{ uri: 'https://lh3.googleusercontent.com/aida/AP1WRLv7n9ZOygo_lFtyhSaqYBYa3SdY1iijTNEluSVYWjjbi8ISBf1-WyHypkJjcygs44a91Fr6SR0sRymrGKNbKQJUeGtKrVFKPmHQI40TFgzxVolJX4tEJDpReiAGH432mcnt76QzqNbU8NLZdjKVyRQvn4YTrszxNv8rT33gRb6CBb39sIxL7qVlZI3x3TI7Y4FTeOqZzGzhaUvSp9C-b8Tzn81xscTnxyrArX2DFIixpf9pKl-ajf_eBEw' }}
-              className="w-full h-48"
-              resizeMode="cover"
-            />
-            <View className="absolute top-2 right-2 bg-emerald-700 px-2.5 py-1 rounded-md">
-              <Text className="text-xs font-bold text-white">Cover Image</Text>
+          <Text className="text-sm font-bold text-gray-700 mb-2">Selected Photos</Text>
+          {draft.photos.length === 0 ? (
+            <View className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <Text className="text-sm text-gray-500">No photos selected yet.</Text>
             </View>
-          </View>
+          ) : (
+            <View className="flex-row flex-wrap -mx-1">
+              {draft.photos.map((photo) => (
+                <TouchableOpacity
+                  key={photo.id}
+                  onPress={() => setCover(photo.id)}
+                  activeOpacity={0.85}
+                  className="w-1/2 px-1 mb-2"
+                >
+                  <View className="relative rounded-xl overflow-hidden bg-gray-100">
+                    <Image source={{ uri: photo.publicUrl || photo.uri }} className="w-full h-36" resizeMode="cover" />
+                    <View className="absolute left-2 top-2 bg-black/60 px-2 py-1 rounded-md">
+                      <Text className="text-[10px] font-bold text-white">
+                        {photo.progress === 100 ? 'Uploaded' : `${photo.progress}%`}
+                      </Text>
+                    </View>
+                    {photo.isCover && (
+                      <View className="absolute right-2 top-2 bg-emerald-700 px-2 py-1 rounded-md">
+                        <Text className="text-[10px] font-bold text-white">Cover</Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </ScrollView>
       </View>
 
       <View className="p-4 border-t border-gray-100 bg-white">
         <TouchableOpacity
           onPress={() => router.push('/(landlord)/post/details')}
+          disabled={draft.photos.length === 0 || uploading}
           activeOpacity={0.8}
-          className="py-4 bg-emerald-700 rounded-xl items-center justify-center shadow-sm"
+          className={`py-4 rounded-xl items-center justify-center shadow-sm ${
+            draft.photos.length === 0 || uploading ? 'bg-gray-200' : 'bg-emerald-700'
+          }`}
         >
-          <Text className="text-base font-bold text-white">Next: Property Details →</Text>
+          <Text className={`text-base font-bold ${draft.photos.length === 0 || uploading ? 'text-gray-400' : 'text-white'}`}>
+            Next: Property Details
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

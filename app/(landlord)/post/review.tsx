@@ -1,13 +1,36 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import HeaderBar from '@/components/ui/HeaderBar';
+import { useAuth } from '@/app/_layout';
+import { createListingFromDraft } from '@/features/listings/api';
+import { useListingPostWizard } from '@/features/listings/postWizard';
 
 export default function PostListingReviewScreen() {
   const router = useRouter();
+  const { session } = useAuth();
+  const { draft, resetDraft } = useListingPostWizard();
+  const [publishing, setPublishing] = useState(false);
 
-  const handlePublish = () => {
-    router.replace('/(landlord)/home');
+  const cover = draft.photos.find((photo) => photo.isCover) || draft.photos[0];
+
+  const handlePublish = async () => {
+    const landlordId = session?.user?.id;
+    if (!landlordId) {
+      Alert.alert('Sign in required', 'Please sign in again before publishing.');
+      return;
+    }
+
+    setPublishing(true);
+    try {
+      await createListingFromDraft(landlordId, draft);
+      resetDraft();
+      router.replace('/(landlord)/post/success');
+    } catch (error) {
+      Alert.alert('Publish failed', (error as Error).message || 'Could not publish this listing.');
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
@@ -23,23 +46,31 @@ export default function PostListingReviewScreen() {
           </View>
 
           <View className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 mb-6">
-            <Image
-              source={{ uri: 'https://lh3.googleusercontent.com/aida/AP1WRLv7n9ZOygo_lFtyhSaqYBYa3SdY1iijTNEluSVYWjjbi8ISBf1-WyHypkJjcygs44a91Fr6SR0sRymrGKNbKQJUeGtKrVFKPmHQI40TFgzxVolJX4tEJDpReiAGH432mcnt76QzqNbU8NLZdjKVyRQvn4YTrszxNv8rT33gRb6CBb39sIxL7qVlZI3x3TI7Y4FTeOqZzGzhaUvSp9C-b8Tzn81xscTnxyrArX2DFIixpf9pKl-ajf_eBEw' }}
-              className="w-full h-48"
-              resizeMode="cover"
-            />
+            {cover ? (
+              <Image source={{ uri: cover.publicUrl || cover.uri }} className="w-full h-48" resizeMode="cover" />
+            ) : (
+              <View className="w-full h-48 bg-gray-100 items-center justify-center">
+                <Text className="text-gray-400 text-sm">No cover photo</Text>
+              </View>
+            )}
             <View className="p-4">
-              <Text className="text-xl font-bold text-gray-900 mb-1">Modern 2BR Lakeside Villa</Text>
-              <Text className="text-sm text-gray-500 mb-2">Haile Resort Area, Hawassa</Text>
-              <Text className="text-2xl font-extrabold text-emerald-700">25,000 ETB / month</Text>
+              <Text className="text-xl font-bold text-gray-900 mb-1">{draft.title || 'Untitled listing'}</Text>
+              <Text className="text-sm text-gray-500 mb-2">{draft.locationText || draft.subcity}</Text>
+              <Text className="text-2xl font-extrabold text-emerald-700">
+                {(Number(draft.price) || 0).toLocaleString()} ETB / month
+              </Text>
+              <Text className="text-xs text-gray-600 mt-2">
+                {draft.type} · {draft.rooms || 0} rooms · {draft.bathroomType || 'Bathroom not specified'}
+              </Text>
+              <Text className="text-sm text-gray-600 mt-3 leading-5">{draft.description}</Text>
             </View>
           </View>
 
           <Text className="text-sm font-bold text-gray-700 mb-2">Agreement Summary</Text>
           <View className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6">
-            <Text className="text-xs text-gray-600 mb-1">✓ Status: Ready to publish</Text>
-            <Text className="text-xs text-gray-600 mb-1">✓ Connector Rate: 10% on deal close</Text>
-            <Text className="text-xs text-gray-600">✓ Visibility: Public on Hawassa Rental Connect</Text>
+            <Text className="text-xs text-gray-600 mb-1">Status: Ready to publish</Text>
+            <Text className="text-xs text-gray-600 mb-1">Connector Rate: 10% on deal close</Text>
+            <Text className="text-xs text-gray-600">Visibility: Public on Hawassa Rental Connect</Text>
           </View>
         </ScrollView>
       </View>
@@ -47,10 +78,15 @@ export default function PostListingReviewScreen() {
       <View className="p-4 border-t border-gray-100 bg-white">
         <TouchableOpacity
           onPress={handlePublish}
+          disabled={publishing}
           activeOpacity={0.9}
           className="py-4 bg-emerald-700 rounded-xl items-center justify-center shadow-lg"
         >
-          <Text className="text-base font-bold text-white">Publish Listing Now 🎉</Text>
+          {publishing ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text className="text-base font-bold text-white">Publish Listing Now</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>

@@ -4,6 +4,7 @@ import HeaderBar from '@/components/ui/HeaderBar';
 import { getTenantInterests } from '@/lib/supabase/api';
 import { useAuth } from '@/app/_layout';
 import { Lead } from '@/lib/supabase/types';
+import { supabase } from '@/lib/supabase/client';
 
 export default function InterestsScreen() {
   const { session } = useAuth();
@@ -19,7 +20,20 @@ export default function InterestsScreen() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    const tenantId = session?.user?.id;
+    if (!tenantId) return;
+    const channel = supabase
+      .channel(`tenant-interests-${tenantId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'interests', filter: `tenant_id=eq.${tenantId}` }, loadData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, loadData)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id]);
 
   const getStatusBadge = (status: Lead['status']) => {
     switch (status) {

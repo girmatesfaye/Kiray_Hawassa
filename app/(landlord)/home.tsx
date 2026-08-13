@@ -1,62 +1,91 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/app/_layout';
+import { supabase } from '@/lib/supabase/client';
+import { fetchListings, getCoverUrl } from '@/features/listings/api';
+import type { ListingWithPhotos } from '@/lib/supabase/types';
 
 export default function LandlordHomeScreen() {
   const router = useRouter();
+  const { session } = useAuth();
+  const [listings, setListings] = useState<ListingWithPhotos[]>([]);
+  const [interestCounts, setInterestCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
 
-  const myProperties = [
-    {
-      id: '1',
-      title: 'Modern 2BR Lakeside Villa',
-      location: 'Haile Resort Area, Hawassa',
-      price: '25,000 ETB/mo',
-      status: 'Available',
-      leadsCount: 4,
-      connectorAssigned: 'Abebe (Hawassa Connector)',
-      image: 'https://lh3.googleusercontent.com/aida/AP1WRLv7n9ZOygo_lFtyhSaqYBYa3SdY1iijTNEluSVYWjjbi8ISBf1-WyHypkJjcygs44a91Fr6SR0sRymrGKNbKQJUeGtKrVFKPmHQI40TFgzxVolJX4tEJDpReiAGH432mcnt76QzqNbU8NLZdjKVyRQvn4YTrszxNv8rT33gRb6CBb39sIxL7qVlZI3x3TI7Y4FTeOqZzGzhaUvSp9C-b8Tzn81xscTnxyrArX2DFIixpf9pKl-ajf_eBEw',
-    },
-    {
-      id: '2',
-      title: 'Commercial Storefront Piassa',
-      location: 'Piassa Main Street, Hawassa',
-      price: '40,000 ETB/mo',
-      status: 'Rented Out',
-      leadsCount: 2,
-      connectorAssigned: 'Hawassa Support Agent',
-      image: 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=600',
-    },
-  ];
+  const loadData = async () => {
+    const landlordId = session?.user?.id;
+    if (!landlordId) return;
+    setLoading(true);
+    try {
+      const data = await fetchListings({ landlordId });
+      setListings(data);
+      const ids = data.map((listing) => listing.id);
+      if (ids.length > 0) {
+        const { data: interests } = await supabase
+          .from('interests')
+          .select('listing_id')
+          .in('listing_id', ids);
+        setInterestCounts(
+          (interests || []).reduce<Record<string, number>>((acc, row) => {
+            acc[row.listing_id] = (acc[row.listing_id] || 0) + 1;
+            return acc;
+          }, {})
+        );
+      } else {
+        setInterestCounts({});
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    const landlordId = session?.user?.id;
+    if (!landlordId) return;
+    const channel = supabase
+      .channel(`landlord-home-${landlordId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, loadData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'interests' }, loadData)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id]);
+
+  const activeCount = listings.filter((item) => item.status === 'available').length;
+  const rentedCount = listings.filter((item) => item.status === 'rented_out').length;
+  const totalInterests = Object.values(interestCounts).reduce((sum, count) => sum + count, 0);
 
   return (
     <ScrollView className="flex-1 bg-gray-50">
-      {/* Header Banner */}
       <View className="bg-emerald-900 p-6 pt-12 rounded-b-3xl">
-        <Text className="text-emerald-200 text-xs font-semibold uppercase tracking-wider">Owner Dashboard</Text>
-        <Text className="text-white text-2xl font-bold mb-4">My Property Listings 🔑</Text>
+        <Text className="text-emerald-200 text-xs font-semibold uppercase">Owner Dashboard</Text>
+        <Text className="text-white text-2xl font-bold mb-4">My Property Listings</Text>
 
-        {/* Stats Row */}
-        <View className="flex-row justify-between bg-emerald-800/60 p-4 rounded-2xl">
+        <View className="flex-row justify-between bg-emerald-800 p-4 rounded-2xl">
           <View className="items-center">
             <Text className="text-emerald-200 text-xs font-medium">Active Listings</Text>
-            <Text className="text-white text-xl font-bold mt-1">1</Text>
+            <Text className="text-white text-xl font-bold mt-1">{activeCount}</Text>
           </View>
           <View className="h-8 w-[1px] bg-emerald-700 self-center" />
           <View className="items-center">
             <Text className="text-emerald-200 text-xs font-medium">Total Inquiries</Text>
-            <Text className="text-white text-xl font-bold mt-1">6</Text>
+            <Text className="text-white text-xl font-bold mt-1">{totalInterests}</Text>
           </View>
           <View className="h-8 w-[1px] bg-emerald-700 self-center" />
           <View className="items-center">
             <Text className="text-emerald-200 text-xs font-medium">Deals Closed</Text>
-            <Text className="text-white text-xl font-bold mt-1">1</Text>
+            <Text className="text-white text-xl font-bold mt-1">{rentedCount}</Text>
           </View>
         </View>
       </View>
 
-      {/* Main Content */}
       <View className="p-4">
-        {/* Post New Property CTA */}
         <TouchableOpacity
           onPress={() => router.push('/(landlord)/post/photos')}
           activeOpacity={0.9}
@@ -64,52 +93,68 @@ export default function LandlordHomeScreen() {
         >
           <View>
             <Text className="text-white text-lg font-bold">Post New Property</Text>
-            <Text className="text-emerald-100 text-xs mt-0.5">List a villa, apartment, or shop in 3 steps</Text>
+            <Text className="text-emerald-100 text-xs mt-0.5">List a house, apartment, or shop</Text>
           </View>
           <View className="w-10 h-10 bg-white/20 rounded-full items-center justify-center">
             <Text className="text-white text-xl font-bold">+</Text>
           </View>
         </TouchableOpacity>
 
-        {/* Properties List */}
-        <Text className="text-lg font-bold text-gray-900 mb-3">Your Properties</Text>
-        {myProperties.map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            onPress={() => router.push(`/(landlord)/listing/${item.id}`)}
-            activeOpacity={0.9}
-            className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-4"
-          >
-            <Image source={{ uri: item.image }} className="w-full h-40" resizeMode="cover" />
-            <View className="p-4">
-              <View className="flex-row justify-between items-start mb-1">
-                <Text className="text-base font-bold text-gray-900 flex-1 mr-2">{item.title}</Text>
-                <Text className="text-base font-extrabold text-emerald-700">{item.price}</Text>
-              </View>
-              <Text className="text-xs text-gray-500 mb-2">{item.location}</Text>
-
-              {/* Task 4: Passive one-line interest & connector status */}
-              {item.leadsCount > 0 && (
-                <View className="bg-emerald-50/80 px-3 py-1.5 rounded-lg mb-3">
-                  <Text className="text-xs font-semibold text-emerald-900">
-                    👥 {item.leadsCount} people interested · assigned to connector ({item.connectorAssigned})
-                  </Text>
-                </View>
-              )}
-
-              <View className="flex-row items-center justify-between pt-3 border-t border-gray-100">
-                <View className={`px-2.5 py-1 rounded-full ${item.status === 'Available' ? 'bg-emerald-50' : 'bg-gray-100'}`}>
-                  <Text className={`text-xs font-bold ${item.status === 'Available' ? 'text-emerald-800' : 'text-gray-700'}`}>
-                    {item.status === 'Available' ? '🟢 Available' : '🔒 Rented Out'}
-                  </Text>
-                </View>
-                <View className="bg-gray-100 px-3 py-1.5 rounded-lg">
-                  <Text className="text-xs font-bold text-gray-700">Manage & Leads ({item.leadsCount}) →</Text>
-                </View>
-              </View>
-            </View>
+        <View className="flex-row justify-between items-center mb-3">
+          <Text className="text-lg font-bold text-gray-900">Your Properties</Text>
+          <TouchableOpacity onPress={loadData}>
+            <Text className="text-xs font-bold text-emerald-700">Refresh</Text>
           </TouchableOpacity>
-        ))}
+        </View>
+
+        {loading ? (
+          <View className="py-10"><ActivityIndicator color="#047857" /></View>
+        ) : listings.length === 0 ? (
+          <View className="bg-white p-5 rounded-xl border border-gray-100">
+            <Text className="text-sm text-gray-500">No listings yet. Post your first property to go live.</Text>
+          </View>
+        ) : (
+          listings.map((item) => {
+            const rentedOut = item.status === 'rented_out';
+            const count = interestCounts[item.id] || 0;
+            return (
+              <TouchableOpacity
+                key={item.id}
+                onPress={() => router.push(`/(landlord)/listing/${item.id}`)}
+                activeOpacity={0.9}
+                className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-4 ${rentedOut ? 'opacity-70' : ''}`}
+              >
+                <Image source={{ uri: getCoverUrl(item) }} className="w-full h-40" resizeMode="cover" />
+                <View className="p-4">
+                  <View className="flex-row justify-between items-start mb-1">
+                    <Text className="text-base font-bold text-gray-900 flex-1 mr-2">{item.title}</Text>
+                    <Text className="text-base font-extrabold text-emerald-700">{Number(item.price).toLocaleString()} ETB</Text>
+                  </View>
+                  <Text className="text-xs text-gray-500 mb-2">{item.location_text || item.location || item.subcity}</Text>
+
+                  {count > 0 && (
+                    <View className="bg-emerald-50 px-3 py-1.5 rounded-lg mb-3">
+                      <Text className="text-xs font-semibold text-emerald-900">
+                        {count} tenant{count === 1 ? '' : 's'} interested
+                      </Text>
+                    </View>
+                  )}
+
+                  <View className="flex-row items-center justify-between pt-3 border-t border-gray-100">
+                    <View className={`px-2.5 py-1 rounded-full ${rentedOut ? 'bg-gray-100' : 'bg-emerald-50'}`}>
+                      <Text className={`text-xs font-bold ${rentedOut ? 'text-gray-700' : 'text-emerald-800'}`}>
+                        {rentedOut ? 'Rented Out' : 'Available'}
+                      </Text>
+                    </View>
+                    <View className="bg-gray-100 px-3 py-1.5 rounded-lg">
+                      <Text className="text-xs font-bold text-gray-700">Manage & Leads ({count})</Text>
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
       </View>
     </ScrollView>
   );

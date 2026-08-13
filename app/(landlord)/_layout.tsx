@@ -2,6 +2,7 @@ import { Tabs, Redirect } from 'expo-router';
 import { View } from 'react-native';
 import { useAuth } from '@/app/_layout';
 import { Colors } from '@/constants/colors';
+import { ListingPostWizardProvider } from '@/features/listings/postWizard';
 
 export default function LandlordLayout() {
   const { role, isLoading } = useAuth();
@@ -17,12 +18,14 @@ export default function LandlordLayout() {
   }
 
   return (
-    <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: Colors.primary }}>
-      <Tabs.Screen name="home" options={{ title: 'Home' }} />
-      <Tabs.Screen name="post" options={{ title: 'Post' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
-      {/* Hidden route for listing details */}
-      <Tabs.Screen name="listing/[id]" options={{ href: null }} />
-    </Tabs>
+    <ListingPostWizardProvider>
+      <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: Colors.primary }}>
+        <Tabs.Screen name="home" options={{ title: 'Home' }} />
+        <Tabs.Screen name="post" options={{ title: 'Post' }} />
+        <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+        {/* Hidden route for listing details */}
+        <Tabs.Screen name="listing/[id]" options={{ href: null }} />
+      </Tabs>
+    </ListingPostWizardProvider>
   );
 }

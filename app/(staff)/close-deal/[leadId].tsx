@@ -1,20 +1,33 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import HeaderBar from '@/components/ui/HeaderBar';
-import { closeDeal } from '@/lib/supabase/api';
+import { closeDeal, getStaffLeads } from '@/lib/supabase/api';
 import { useAuth } from '@/app/_layout';
+import type { Lead } from '@/lib/supabase/types';
 
 export default function CloseDealScreen() {
   const { leadId } = useLocalSearchParams();
   const router = useRouter();
   const { session } = useAuth();
+  const selectedLeadId = String(leadId || '');
 
   const [agreedRent, setAgreedRent] = useState('25000');
   const [loading, setLoading] = useState(false);
+  const [lead, setLead] = useState<Lead | null>(null);
 
   const rentNum = parseFloat(agreedRent.replace(/,/g, '')) || 0;
   const calculatedCommission = Math.round(rentNum * 0.1);
+
+  useEffect(() => {
+    getStaffLeads('All').then((items) => {
+      const match = items.find((item) => item.id === selectedLeadId);
+      if (match) {
+        setLead(match);
+        setAgreedRent(String(match.listing?.price || 25000));
+      }
+    });
+  }, [selectedLeadId]);
 
   const handleConfirmCloseDeal = async () => {
     if (rentNum <= 0) {
@@ -22,32 +35,28 @@ export default function CloseDealScreen() {
       return;
     }
 
+    if (!lead?.tenant_id || !lead?.listing_id || !lead?.landlord_id) {
+      Alert.alert('Missing Details', 'Could not load the selected lead details.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const staffId = session?.user?.id || 'staff-01';
-      
-      // Task 6: Trigger atomic close_deal transaction
       await closeDeal({
-        lead_id: (leadId as string) || '1',
-        tenant_id: 'tenant-101',
-        landlord_id: 'landlord-201',
-        listing_id: '1',
-        staff_id: staffId,
+        lead_id: selectedLeadId,
+        tenant_id: lead.tenant_id,
+        landlord_id: lead.landlord_id,
+        listing_id: lead.listing_id,
+        staff_id: session?.user?.id || lead.staff_id || lead.connector_id || '',
         commission_amount: calculatedCommission,
       });
 
       Alert.alert(
-        'Deal Closed Successfully! 🎉',
-        `Commission of ${calculatedCommission.toLocaleString()} ETB created as PENDING payout.`,
-        [
-          {
-            text: 'View Earnings',
-            onPress: () => router.replace('/(staff)/earnings'),
-          },
-        ]
+        'Deal Closed Successfully',
+        `Commission of ${calculatedCommission.toLocaleString()} ETB created as pending payout.`,
+        [{ text: 'View Earnings', onPress: () => router.replace('/(staff)/earnings') }]
       );
     } catch (e) {
-      console.error('Error closing deal:', e);
       Alert.alert('Transaction Failed', (e as Error).message || 'Could not close deal.');
     } finally {
       setLoading(false);
@@ -63,7 +72,7 @@ export default function CloseDealScreen() {
           <View className="bg-amber-50 border border-amber-200 p-4 rounded-2xl mb-6">
             <Text className="text-sm font-bold text-amber-900 mb-1">High Stakes Transaction</Text>
             <Text className="text-xs text-amber-800 leading-5">
-              Confirming deal closure will atomically flip listing status to &quot;Rented Out&quot;, generate a pending payout record (Task 7), unlock tenant/landlord contacts, and send notifications.
+              Confirming deal closure flips the listing to rented out, creates a pending payout, unlocks contacts, and updates the tenant interest.
             </Text>
           </View>
 
@@ -87,12 +96,12 @@ export default function CloseDealScreen() {
           </View>
 
           <View className="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-4">
-            <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+            <Text className="text-xs font-semibold text-gray-500 uppercase mb-2">
               Transaction Details Summary
             </Text>
-            <Text className="text-xs text-gray-700 mb-1">• Tenant: Abebe Bikila</Text>
-            <Text className="text-xs text-gray-700 mb-1">• Landlord: Kebede Tassew</Text>
-            <Text className="text-xs text-gray-700">• Property: Modern 2BR Lakeside Villa</Text>
+            <Text className="text-xs text-gray-700 mb-1">Tenant: {lead?.tenant?.full_name || 'Tenant'}</Text>
+            <Text className="text-xs text-gray-700 mb-1">Landlord: {lead?.landlord?.full_name || 'Landlord'}</Text>
+            <Text className="text-xs text-gray-700">Property: {lead?.listing?.title || 'Selected listing'}</Text>
           </View>
         </ScrollView>
       </View>
@@ -100,14 +109,16 @@ export default function CloseDealScreen() {
       <View className="p-4 border-t border-gray-100 bg-white">
         <TouchableOpacity
           onPress={handleConfirmCloseDeal}
-          disabled={loading}
+          disabled={loading || !lead}
           activeOpacity={0.9}
-          className="py-4 bg-emerald-700 rounded-xl items-center justify-center shadow-lg"
+          className={`py-4 rounded-xl items-center justify-center shadow-lg ${lead ? 'bg-emerald-700' : 'bg-gray-200'}`}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-base font-bold text-white">Confirm Deal Closure 🤝</Text>
+            <Text className={`text-base font-bold ${lead ? 'text-white' : 'text-gray-400'}`}>
+              Confirm Deal Closure
+            </Text>
           )}
         </TouchableOpacity>
       </View>

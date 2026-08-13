@@ -34,6 +34,11 @@ BEGIN
   SET status = 'linked', updated_at = now()
   WHERE id = p_lead_id;
 
+  -- 4b. Task brief #2 moved active tenant inquiries to interests.
+  UPDATE interests
+  SET status = 'linked', updated_at = now()
+  WHERE id = p_lead_id;
+
   -- 5. Trigger notifications for tenant & landlord
   INSERT INTO notifications (user_id, title, body)
   VALUES 

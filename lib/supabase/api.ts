@@ -1,5 +1,11 @@
 import { supabase } from './client';
 import { Lead, Listing, Payout, Profile } from './types';
+import {
+  createInterest as createRealInterest,
+  fetchStaffInterests,
+  fetchTenantInterests,
+  updateInterestStatus,
+} from '@/features/interests/api';
 
 // In-memory mock store for local interactive fallback demo state
 let MOCK_LEADS: Lead[] = [
@@ -211,16 +217,18 @@ let MOCK_PAYOUTS: Payout[] = [
  */
 export async function createInterest(tenantId: string, listingId: string) {
   try {
-    const { data, error } = await supabase
-      .from('leads')
-      .insert({
-        tenant_id: tenantId,
-        listing_id: listingId,
-        status: 'waiting_for_call',
-      })
-      .select()
+    const { data: listing, error: listingError } = await supabase
+      .from('listings')
+      .select('landlord_id')
+      .eq('id', listingId)
       .single();
-    if (!error && data) return data;
+    if (listingError) throw listingError;
+
+    return await createRealInterest({
+      tenantId,
+      listingId,
+      landlordId: listing.landlord_id,
+    });
   } catch (e) {
     console.log('Supabase fetch fallback to mock');
   }
@@ -257,11 +265,8 @@ export async function createInterest(tenantId: string, listingId: string) {
  */
 export async function getTenantInterests(tenantId: string): Promise<Lead[]> {
   try {
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*, listing:listings(*), connector:profiles!connector_id(*), landlord:profiles!listings_landlord_id_fkey(*)')
-      .eq('tenant_id', tenantId);
-    if (!error && data && data.length > 0) return data as Lead[];
+    const data = await fetchTenantInterests(tenantId);
+    return data;
   } catch (e) {
     console.log('Supabase fetch fallback to mock');
   }
@@ -273,17 +278,8 @@ export async function getTenantInterests(tenantId: string): Promise<Lead[]> {
  */
 export async function getStaffLeads(statusFilter?: string): Promise<Lead[]> {
   try {
-    let query = supabase
-      .from('leads')
-      .select('*, tenant:profiles!tenant_id(*), listing:listings(*), connector:profiles!connector_id(*)');
-    if (statusFilter && statusFilter !== 'All') {
-      if (statusFilter === 'New') query = query.eq('status', 'waiting_for_call');
-      if (statusFilter === 'Meeting Scheduled') query = query.eq('status', 'visit_scheduled');
-      if (statusFilter === 'Deal Closed') query = query.eq('status', 'linked');
-      if (statusFilter === 'Dropped') query = query.eq('status', 'not_selected');
-    }
-    const { data, error } = await query;
-    if (!error && data && data.length > 0) return data as Lead[];
+    const data = await fetchStaffInterests(statusFilter);
+    return data;
   } catch (e) {
     console.log('Supabase fetch fallback to mock');
   }
@@ -301,12 +297,7 @@ export async function getStaffLeads(statusFilter?: string): Promise<Lead[]> {
  */
 export async function updateLeadStatus(leadId: string, status: Lead['status']) {
   try {
-    const { data, error } = await supabase
-      .from('leads')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', leadId)
-      .select();
-    if (!error && data) return data;
+    return await updateInterestStatus(leadId, status);
   } catch (e) {
     console.log('Supabase update fallback to mock');
   }

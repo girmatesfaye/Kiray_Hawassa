@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import HeaderBar from '@/components/ui/HeaderBar';
 import { getStaffLeads } from '@/lib/supabase/api';
 import { Lead } from '@/lib/supabase/types';
+import { supabase } from '@/lib/supabase/client';
 
 export default function StaffLeadsListScreen() {
   const router = useRouter();
@@ -20,6 +21,17 @@ export default function StaffLeadsListScreen() {
 
   useEffect(() => {
     fetchLeads();
+  }, [filter]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`staff-leads-${filter}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'interests' }, fetchLeads)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, fetchLeads)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [filter]);
 
   const filteredLeads = leads.filter((item) => {

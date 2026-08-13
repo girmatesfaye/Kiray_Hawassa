@@ -25,6 +25,8 @@ export interface Lead {
   id: string;
   tenant_id: string;
   listing_id: string;
+  landlord_id?: string;
+  staff_id?: string | null;
   connector_id: string | null;
   status: LeadStatus;
   created_at: string;
@@ -43,14 +45,36 @@ export interface Listing {
   description: string | null;
   location: string | null;
   price: number;
+  type?: 'house' | 'apartment' | 'shop' | null;
+  rooms?: number | null;
+  bathroom_type?: string | null;
+  has_water?: boolean | null;
+  has_electric?: boolean | null;
+  subcity?: string | null;
+  location_text?: string | null;
   bedrooms: number | null;
   bathrooms: number | null;
   area_sqm: number | null;
-  status: 'available' | 'rented_out';
+  status: 'available' | 'pending' | 'rented_out';
   image_url: string | null;
   amenities: string[] | null;
   created_at: string;
 }
+
+export interface ListingPhoto {
+  id: string;
+  listing_id: string;
+  landlord_id: string;
+  storage_path: string;
+  public_url: string;
+  is_cover: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export type ListingWithPhotos = Listing & {
+  photos?: ListingPhoto[];
+};
 
 export interface Link {
   id: string;
