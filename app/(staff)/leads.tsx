@@ -10,13 +10,11 @@ export default function StaffLeadsListScreen() {
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchLeads = async () => {
     const data = await getStaffLeads(filter);
     setLeads(data);
-    setLoading(false);
     setRefreshing(false);
   };
 
@@ -147,7 +145,7 @@ export default function StaffLeadsListScreen() {
 
         {filteredLeads.length === 0 && (
           <View className="py-12 items-center justify-center">
-            <Text className="text-gray-400 text-sm font-medium">No leads found under filter "{filter}"</Text>
+            <Text className="text-gray-400 text-sm font-medium">No leads found under filter &quot;{filter}&quot;</Text>
           </View>
         )}
       </ScrollView>

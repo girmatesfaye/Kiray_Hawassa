@@ -63,7 +63,7 @@ export default function CloseDealScreen() {
           <View className="bg-amber-50 border border-amber-200 p-4 rounded-2xl mb-6">
             <Text className="text-sm font-bold text-amber-900 mb-1">High Stakes Transaction</Text>
             <Text className="text-xs text-amber-800 leading-5">
-              Confirming deal closure will atomically flip listing status to "Rented Out", generate a pending payout record (Task 7), unlock tenant/landlord contacts, and send notifications.
+              Confirming deal closure will atomically flip listing status to &quot;Rented Out&quot;, generate a pending payout record (Task 7), unlock tenant/landlord contacts, and send notifications.
             </Text>
           </View>
 

@@ -8,14 +8,12 @@ import { Lead } from '@/lib/supabase/types';
 export default function InterestsScreen() {
   const { session } = useAuth();
   const [interests, setInterests] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
     const tenantId = session?.user?.id || 'tenant-101';
     const data = await getTenantInterests(tenantId);
     setInterests(data);
-    setLoading(false);
     setRefreshing(false);
   };
 

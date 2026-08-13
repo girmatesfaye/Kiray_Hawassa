@@ -11,7 +11,7 @@ export function OtpInput({ value, onChangeText, style, ...props }: OtpInputProps
   const filled = digits.length;
 
   return (
-    <View style={[{ alignItems: 'center', gap: Spacing.lg }, style]}>
+    <View style={[{ alignItems: 'center', gap: Spacing.lg }, style as any]}>
       <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
         {[0, 1, 2, 3, 4, 5].map((index) => (
           <View

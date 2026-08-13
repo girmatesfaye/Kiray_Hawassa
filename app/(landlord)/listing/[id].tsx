@@ -7,7 +7,6 @@ import { Payout } from '@/lib/supabase/types';
 
 export default function LandlordListingDetailScreen() {
   const { id } = useLocalSearchParams();
-  const router = useRouter();
 
   const listingId = (id as string) || '1';
   const isRentedOut = listingId === '2'; // Listing 2 simulated as Rented Out / Deal Closed

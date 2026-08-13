@@ -115,7 +115,7 @@ export default function ListingDetailScreen() {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-base font-bold text-white">I'm Interested</Text>
+            <Text className="text-base font-bold text-white">I&apos;m Interested</Text>
           )}
         </TouchableOpacity>
       </View>

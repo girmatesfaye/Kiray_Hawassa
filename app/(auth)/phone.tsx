@@ -20,7 +20,7 @@ export default function PhoneScreen() {
       <View className="pt-12">
         <Text className="text-3xl font-bold text-gray-900 mb-2">Welcome to Kira</Text>
         <Text className="text-base text-gray-600 mb-8">
-          Hawassa's premier real estate & rental marketplace. Enter your phone number to proceed.
+          Hawassa&apos;s premier real estate & rental marketplace. Enter your phone number to proceed.
         </Text>
 
         <Text className="text-sm font-semibold text-gray-700 mb-2">Phone Number</Text>

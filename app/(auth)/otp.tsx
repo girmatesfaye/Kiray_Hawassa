@@ -41,7 +41,7 @@ export default function OtpScreen() {
         </View>
 
         <TouchableOpacity className="items-center py-2">
-          <Text className="text-sm text-amber-700 font-semibold">Didn't receive code? Resend Code</Text>
+          <Text className="text-sm text-amber-700 font-semibold">Didn&apos;t receive code? Resend Code</Text>
         </TouchableOpacity>
       </View>
 
