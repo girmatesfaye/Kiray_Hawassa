@@ -55,7 +55,7 @@ export default function SignInScreen() {
         onPress={() => router.push('/(auth)/sign-up')}
         className="py-2 items-center"
       >
-        <Text className="text-sm text-amber-700 font-semibold">Don't have an account? Sign Up</Text>
+        <Text className="text-sm text-amber-700 font-semibold">Don&apos;t have an account? Sign Up</Text>
       </TouchableOpacity>
     </ScrollView>
   );

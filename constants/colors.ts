@@ -91,6 +91,9 @@ export const Spacing = {
   lg: 16,
   xl: 24,
   xxl: 32,
+  inlineGap: 12,
+  sectionPadding: 16,
+  cardPadding: 16,
 } as const;
 
 export const Radius = {
@@ -98,6 +101,8 @@ export const Radius = {
   md: 8,
   lg: 12,
   xl: 16,
+  sheet: 24,
+  card: 16,
   full: 9999,
 } as const;
 
@@ -115,5 +120,12 @@ export const Shadow = {
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,
+  },
+  card: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
 } as const;

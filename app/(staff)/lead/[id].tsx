@@ -166,7 +166,7 @@ export default function StaffLeadDetailScreen() {
             </Text>
             {isDropped && (
               <Text className="text-xs text-red-600 leading-5 font-semibold mt-1">
-                • Lead marked as "Not Interested" by staff.
+                • Lead marked as &quot;Not Interested&quot; by staff.
               </Text>
             )}
           </View>

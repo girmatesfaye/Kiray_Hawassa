@@ -22,7 +22,7 @@ export function PhoneInput({ value, onChangeText, style, ...props }: PhoneInputP
           paddingHorizontal: Spacing.md,
           height: 52,
         },
-        style,
+        style as any,
       ]}>
       <Text style={[Typography.bodyLg, { color: Colors.onSurfaceVariant, marginRight: Spacing.sm }]}>
         +251
