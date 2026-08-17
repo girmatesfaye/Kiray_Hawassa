@@ -1,9 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+} from 'react-native';
+import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { fetchListings, getCoverUrl } from '@/features/listings/api';
 import type { ListingWithPhotos } from '@/lib/supabase/types';
 import { StatusStamp } from '@/components/ui/StatusStamp';
+import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 
 const categories = [
   { label: 'All', value: 'all' },
@@ -15,14 +29,25 @@ const categories = [
 export default function BrowseScreen() {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState('all');
+  // Inline search — stays in the header always
   const [search, setSearch] = useState('');
+  // Filter state — lives in the sheet
   const [subcity, setSubcity] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  // Draft filter state while sheet is open (committed on Apply)
+  const [draftSubcity, setDraftSubcity] = useState('');
+  const [draftMaxPrice, setDraftMaxPrice] = useState('');
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
   const [listings, setListings] = useState<ListingWithPhotos[]>([]);
   const [loading, setLoading] = useState(true);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadListingsWithParams = async (searchVal: string, subcityVal: string, maxPriceVal: string) => {
+  const loadListingsWithParams = async (
+    searchVal: string,
+    subcityVal: string,
+    maxPriceVal: string,
+  ) => {
     setLoading(true);
     try {
       const data = await fetchListings({
@@ -56,60 +81,104 @@ export default function BrowseScreen() {
     };
   }, []);
 
+  const hasActiveFilters = subcity.trim().length > 0 || maxPrice.trim().length > 0;
 
+  const openFilterSheet = () => {
+    // Seed draft with currently applied filters
+    setDraftSubcity(subcity);
+    setDraftMaxPrice(maxPrice);
+    setFilterSheetOpen(true);
+  };
+
+  const applyFilters = () => {
+    setSubcity(draftSubcity);
+    setMaxPrice(draftMaxPrice);
+    setFilterSheetOpen(false);
+    loadListingsWithParams(search, draftSubcity, draftMaxPrice);
+  };
+
+  const clearFilters = () => {
+    setDraftSubcity('');
+    setDraftMaxPrice('');
+    setSubcity('');
+    setMaxPrice('');
+    setFilterSheetOpen(false);
+    loadListingsWithParams(search, '', '');
+  };
 
   return (
     <ScrollView className="flex-1 bg-gray-50">
+      {/* ── Header ── */}
       <View className="bg-amber-900 p-6 pt-12 rounded-b-3xl">
         <View className="flex-row justify-between items-center mb-4">
           <View>
             <Text className="text-amber-200 text-xs font-semibold uppercase">Location</Text>
             <Text className="text-white text-xl font-bold">Hawassa, Ethiopia</Text>
           </View>
-          <TouchableOpacity
-            onPress={() => router.push('/notifications')}
-            className="w-10 h-10 bg-amber-800 rounded-full items-center justify-center"
-          >
-            <Text className="text-white text-lg">!</Text>
-          </TouchableOpacity>
+          <View className="flex-row gap-2 items-center">
+            {/* Filter button with active indicator */}
+            <TouchableOpacity
+              onPress={openFilterSheet}
+              className={`w-10 h-10 rounded-full items-center justify-center ${
+                hasActiveFilters ? 'bg-amber-500' : 'bg-amber-800'
+              }`}
+            >
+              <Ionicons name="options-outline" size={20} color="#ffffff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push('/notifications')}
+              className="w-10 h-10 bg-amber-800 rounded-full items-center justify-center"
+            >
+              <Ionicons name="notifications-outline" size={20} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <View className="bg-white rounded-xl px-4 py-3 shadow-sm">
+        {/* Inline search bar — always visible */}
+        <View className="bg-white rounded-xl px-4 py-3 shadow-sm flex-row items-center gap-2">
+          <Ionicons name="search-outline" size={16} color="#9CA3AF" />
           <TextInput
-            className="text-gray-900 text-sm"
+            className="flex-1 text-gray-900 text-sm"
             placeholder="Search villas, apartments, shops..."
             placeholderTextColor="#9CA3AF"
             value={search}
-            onChangeText={(newVal) => { setSearch(newVal); debouncedLoad(newVal, subcity, maxPrice); }}
+            onChangeText={(newVal) => {
+              setSearch(newVal);
+              debouncedLoad(newVal, subcity, maxPrice);
+            }}
             onSubmitEditing={loadListings}
             returnKeyType="search"
           />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => { setSearch(''); debouncedLoad('', subcity, maxPrice); }}>
+              <Ionicons name="close-circle" size={16} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
         </View>
-        <View className="bg-white rounded-xl px-4 py-3 shadow-sm mt-3">
-          <TextInput
-            className="text-gray-900 text-sm"
-            placeholder="Filter by subcity"
-            placeholderTextColor="#9CA3AF"
-            value={subcity}
-            onChangeText={(newVal) => { setSubcity(newVal); debouncedLoad(search, newVal, maxPrice); }}
-            onSubmitEditing={loadListings}
-            returnKeyType="search"
-          />
-        </View>
-        <View className="bg-white rounded-xl px-4 py-3 shadow-sm mt-3">
-          <TextInput
-            className="text-gray-900 text-sm"
-            placeholder="Max rent e.g. 25000 ETB"
-            placeholderTextColor="#9CA3AF"
-            value={maxPrice}
-            onChangeText={(newVal) => { setMaxPrice(newVal); debouncedLoad(search, subcity, newVal); }}
-            onSubmitEditing={loadListings}
-            returnKeyType="search"
-            keyboardType="numeric"
-          />
-        </View>
+
+        {/* Active filter pill summary */}
+        {hasActiveFilters && (
+          <View className="flex-row flex-wrap gap-2 mt-3">
+            {subcity.trim().length > 0 && (
+              <View className="bg-amber-700 px-3 py-1 rounded-full flex-row items-center">
+                <Text className="text-white text-xs font-semibold mr-1">📍 {subcity}</Text>
+              </View>
+            )}
+            {maxPrice.trim().length > 0 && (
+              <View className="bg-amber-700 px-3 py-1 rounded-full flex-row items-center">
+                <Text className="text-white text-xs font-semibold mr-1">
+                  Max {Number(maxPrice.replace(/,/g, '')).toLocaleString()} ETB
+                </Text>
+              </View>
+            )}
+            <TouchableOpacity onPress={clearFilters} className="bg-amber-800 px-3 py-1 rounded-full">
+              <Text className="text-amber-200 text-xs font-semibold">Clear</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
+      {/* ── Category chips ── */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 py-4">
         {categories.map((cat) => (
           <TouchableOpacity
@@ -119,13 +188,18 @@ export default function BrowseScreen() {
               selectedCategory === cat.value ? 'bg-amber-700' : 'bg-white border border-gray-200'
             }`}
           >
-            <Text className={`text-sm font-semibold ${selectedCategory === cat.value ? 'text-white' : 'text-gray-700'}`}>
+            <Text
+              className={`text-sm font-semibold ${
+                selectedCategory === cat.value ? 'text-white' : 'text-gray-700'
+              }`}
+            >
               {cat.label}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
+      {/* ── Listings ── */}
       <View className="px-4 pb-8">
         <View className="flex-row justify-between items-center mb-3">
           <Text className="text-lg font-bold text-gray-900">Featured Listings</Text>
@@ -135,11 +209,18 @@ export default function BrowseScreen() {
         </View>
 
         {loading ? (
-          <View className="py-12"><ActivityIndicator color="#b45309" /></View>
+          <>
+            <SkeletonLoader.Card />
+            <SkeletonLoader.Card />
+          </>
         ) : listings.length === 0 ? (
-          <View className="bg-white p-5 rounded-xl border border-gray-100">
-            <Text className="text-sm text-gray-500">No matching listings yet.</Text>
-          </View>
+          <Animated.View entering={FadeIn.duration(400)} className="items-center py-14">
+            <Text style={{ fontSize: 40, marginBottom: 12 }}>🏠</Text>
+            <Text className="text-base font-bold text-gray-700 mb-1">No listings found</Text>
+            <Text className="text-sm text-gray-400 text-center">
+              {hasActiveFilters ? 'Try adjusting your filters.' : 'No listings available yet.'}
+            </Text>
+          </Animated.View>
         ) : (
           listings.map((item) => {
             const rentedOut = item.status === 'rented_out';
@@ -148,18 +229,25 @@ export default function BrowseScreen() {
                 key={item.id}
                 onPress={() => router.push(`/(tenant)/listing/${item.id}`)}
                 activeOpacity={0.9}
-                className={`relative bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-4 ${rentedOut ? 'opacity-55' : ''}`}
+                className={`relative bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-4 ${
+                  rentedOut ? 'opacity-55' : ''
+                }`}
               >
                 <Image source={{ uri: getCoverUrl(item) }} className="w-full h-48" resizeMode="cover" />
                 <StatusStamp status={rentedOut ? 'Rented Out' : 'Available'} />
                 <View className="p-4">
                   <View className="flex-row justify-between items-start mb-1">
                     <Text className="text-base font-bold text-gray-900 flex-1 mr-2">{item.title}</Text>
-                    <Text className="text-base font-extrabold text-amber-700">{Number(item.price).toLocaleString()} ETB</Text>
+                    <Text className="text-base font-extrabold text-amber-700">
+                      {Number(item.price).toLocaleString()} ETB
+                    </Text>
                   </View>
-                  <Text className="text-xs text-gray-500 mb-2">{item.location_text || item.location || item.subcity}</Text>
+                  <Text className="text-xs text-gray-500 mb-2">
+                    {item.location_text || item.location || item.subcity}
+                  </Text>
                   <Text className="text-xs text-gray-600 font-medium">
-                    {item.type || 'house'} · {item.rooms ?? item.bedrooms ?? 0} rooms · {item.bathroom_type || `${item.bathrooms ?? 0} bath`}
+                    {item.type || 'house'} · {item.rooms ?? item.bedrooms ?? 0} rooms ·{' '}
+                    {item.bathroom_type || `${item.bathrooms ?? 0} bath`}
                   </Text>
                   {rentedOut && <Text className="text-xs font-bold text-gray-500 mt-2">Rented out</Text>}
                 </View>
@@ -168,6 +256,126 @@ export default function BrowseScreen() {
           })
         )}
       </View>
+
+      {/* ── Filter Bottom Sheet ── */}
+      <Modal
+        visible={filterSheetOpen}
+        transparent
+        animationType="none"
+        onRequestClose={() => setFilterSheetOpen(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
+          onPress={() => setFilterSheetOpen(false)}
+        >
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <Animated.View
+              entering={SlideInDown.duration(280).springify().damping(20)}
+              exiting={SlideOutDown.duration(200)}
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                padding: 24,
+                paddingBottom: 40,
+              }}
+              // Prevent tap-through to backdrop
+              onStartShouldSetResponder={() => true}
+            >
+              {/* Sheet handle */}
+              <View
+                style={{
+                  width: 40,
+                  height: 4,
+                  backgroundColor: '#E5E7EB',
+                  borderRadius: 2,
+                  alignSelf: 'center',
+                  marginBottom: 20,
+                }}
+              />
+              <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827', marginBottom: 20 }}>
+                Filter Listings
+              </Text>
+
+              {/* Subcity */}
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Subcity / Area
+              </Text>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  fontSize: 14,
+                  color: '#111827',
+                  backgroundColor: '#F9FAFB',
+                  marginBottom: 16,
+                }}
+                placeholder="e.g. Tabor, Mehal Ketema"
+                placeholderTextColor="#9CA3AF"
+                value={draftSubcity}
+                onChangeText={setDraftSubcity}
+                returnKeyType="next"
+              />
+
+              {/* Max price */}
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Max Rent (ETB / month)
+              </Text>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  fontSize: 14,
+                  color: '#111827',
+                  backgroundColor: '#F9FAFB',
+                  marginBottom: 24,
+                }}
+                placeholder="e.g. 25000"
+                placeholderTextColor="#9CA3AF"
+                value={draftMaxPrice}
+                onChangeText={setDraftMaxPrice}
+                keyboardType="numeric"
+                returnKeyType="done"
+              />
+
+              {/* Buttons */}
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity
+                  onPress={clearFilters}
+                  style={{
+                    flex: 1,
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 12,
+                    paddingVertical: 14,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#6B7280' }}>Clear</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={applyFilters}
+                  style={{
+                    flex: 2,
+                    backgroundColor: '#b45309',
+                    borderRadius: 12,
+                    paddingVertical: 14,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#ffffff' }}>Apply Filters</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
