@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, RefreshControl, Linking } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import HeaderBar from '@/components/ui/HeaderBar';
+import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { getStaffLeads } from '@/lib/supabase/api';
 import { Lead } from '@/lib/supabase/types';
 
@@ -12,11 +14,13 @@ export default function StaffLeadsListScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const fetchLeads = async () => {
     const data = await getStaffLeads(filter);
     setLeads(data);
     setRefreshing(false);
+    setInitialLoading(false);
   };
 
   useEffect(() => {
@@ -97,7 +101,20 @@ export default function StaffLeadsListScreen() {
         className="flex-1 p-4"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchLeads(); }} />}
       >
-        {filteredLeads.map((item) => {
+        {initialLoading ? (
+          <>
+            <SkeletonLoader.Row />
+            <SkeletonLoader.Row />
+            <SkeletonLoader.Row />
+          </>
+        ) : filteredLeads.length === 0 ? (
+          <Animated.View entering={FadeIn.duration(350)} style={{ paddingVertical: 48, alignItems: 'center' }}>
+            <Text style={{ fontSize: 36, marginBottom: 12 }}>📋</Text>
+            <Text style={{ color: '#6B7280', fontSize: 14, fontWeight: '600' }}>
+              No leads found for "{filter}"
+            </Text>
+          </Animated.View>
+        ) : filteredLeads.map((item) => {
           const badge = getStatusBadge(item.status);
           const isDropped = item.status === 'not_selected';
 
@@ -145,12 +162,6 @@ export default function StaffLeadsListScreen() {
             </TouchableOpacity>
           );
         })}
-
-        {filteredLeads.length === 0 && (
-          <View className="py-12 items-center justify-center">
-            <Text className="text-gray-400 text-sm font-medium">No leads found under filter &quot;{filter}&quot;</Text>
-          </View>
-        )}
       </ScrollView>
     </View>
   );

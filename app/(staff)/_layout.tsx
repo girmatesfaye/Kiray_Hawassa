@@ -1,7 +1,8 @@
 import { Tabs, Redirect } from 'expo-router';
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 import { useAuth } from '@/app/_layout';
 import { Colors } from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 
 export default function StaffLayout() {
   const { role, isLoading } = useAuth();
@@ -17,10 +18,44 @@ export default function StaffLayout() {
   }
 
   return (
-    <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: Colors.primary }}>
-      <Tabs.Screen name="leads" options={{ title: 'Leads' }} />
-      <Tabs.Screen name="schedule" options={{ title: 'Schedule' }} />
-      <Tabs.Screen name="earnings" options={{ title: 'Earnings' }} />
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: '#1d4ed8',
+        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarStyle: {
+          height: 62,
+          borderTopWidth: 1,
+          borderTopColor: '#F3F4F6',
+          paddingBottom: 8,
+          paddingTop: 6,
+          backgroundColor: '#FFFFFF',
+        },
+        tabBarItemStyle: { minHeight: 48, justifyContent: 'center' },
+        tabBarLabelStyle: { fontSize: 11, fontFamily: FontFamily.semiBold, fontWeight: '600' },
+      }}
+    >
+      <Tabs.Screen
+        name="leads"
+        options={{
+          title: 'Leads',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📋</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="schedule"
+        options={{
+          title: 'Schedule',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📅</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="earnings"
+        options={{
+          title: 'Earnings',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>💰</Text>,
+        }}
+      />
       {/* Hidden screens — navigable but not shown in tab bar */}
       <Tabs.Screen name="add-lead" options={{ href: null }} />
       <Tabs.Screen name="close-deal/[leadId]" options={{ href: null }} />

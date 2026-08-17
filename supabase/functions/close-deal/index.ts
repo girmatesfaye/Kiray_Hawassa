@@ -20,9 +20,9 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { lead_id, interest_id, tenant_id, landlord_id, listing_id, staff_id, commission_amount } = await req.json();
+    const { interest_id, tenant_id, landlord_id, listing_id, staff_id, commission_amount } = await req.json();
 
-    if (!lead_id || !tenant_id || !landlord_id || !listing_id || !staff_id || !commission_amount) {
+    if (!interest_id || !tenant_id || !landlord_id || !listing_id || !staff_id || !commission_amount) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters for close_deal' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -30,8 +30,7 @@ serve(async (req) => {
     }
 
     const { data, error } = await supabaseClient.rpc('close_deal', {
-      p_lead_id: lead_id,
-      p_interest_id: interest_id ?? null,
+      p_interest_id: interest_id,
       p_tenant_id: tenant_id,
       p_landlord_id: landlord_id,
       p_listing_id: listing_id,

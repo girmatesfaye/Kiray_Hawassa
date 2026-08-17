@@ -2,13 +2,12 @@
 -- Atomic Close Deal transaction function
 
 CREATE OR REPLACE FUNCTION close_deal(
-  p_lead_id UUID,
+  p_interest_id UUID,
   p_tenant_id UUID,
   p_landlord_id UUID,
   p_listing_id UUID,
   p_staff_id UUID,
-  p_commission_amount NUMERIC,
-  p_interest_id UUID DEFAULT NULL
+  p_commission_amount NUMERIC
 ) RETURNS JSONB AS $$
 DECLARE
   v_link_id UUID;
@@ -30,17 +29,10 @@ BEGIN
   VALUES (v_link_id, p_staff_id, p_commission_amount, 'pending')
   RETURNING id INTO v_payout_id;
 
-  -- 4. Update lead status to 'linked'
-  UPDATE leads
+  -- 4. Update interest status to 'linked'
+  UPDATE interests
   SET status = 'linked', updated_at = now()
-  WHERE id = p_lead_id;
-
-  -- 4b. Task brief #2 moved active tenant inquiries to interests.
-  IF p_interest_id IS NOT NULL THEN
-    UPDATE interests
-    SET status = 'linked', updated_at = now()
-    WHERE id = p_interest_id;
-  END IF;
+  WHERE id = p_interest_id;
 
   -- 5. Trigger notifications for tenant & landlord
   INSERT INTO notifications (user_id, title, body)
@@ -59,3 +51,4 @@ EXCEPTION WHEN OTHERS THEN
   RAISE EXCEPTION 'close_deal transaction failed: %', SQLERRM;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+

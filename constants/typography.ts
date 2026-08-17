@@ -6,10 +6,12 @@
  *   import { Typography } from '@/constants/typography';
  *   style={Typography.headlineXl}
  *
- * Note: only PlusJakartaSans-Regular.ttf is bundled. Bold / semibold weights
- * are achieved via React Native's built-in fontWeight system — the OS
- * synthesises the weight from the regular outline when no separate font file
- * is registered for that weight.
+ * Real font files bundled:
+ *   PlusJakartaSans-Regular.ttf  → FontFamily.regular
+ *   PlusJakartaSans-Medium.ttf   → FontFamily.medium
+ *   PlusJakartaSans-SemiBold.ttf → FontFamily.semiBold
+ *   PlusJakartaSans-Bold.ttf     → FontFamily.bold
+ * Each is registered individually in app/_layout.tsx via useFonts().
  */
 
 import { TextStyle } from 'react-native';
@@ -18,12 +20,15 @@ import { TextStyle } from 'react-native';
 // Only the regular face is loaded; all other weights use fontWeight synthesis.
 export const FontFamily = {
   regular: 'PlusJakartaSans-Regular',
+  medium: 'PlusJakartaSans-Medium',
+  semiBold: 'PlusJakartaSans-SemiBold',
+  bold: 'PlusJakartaSans-Bold',
 } as const;
 
 // Type scale — maps exactly to Stitch typography tokens
 export const Typography = {
   headlineXl: {
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.bold,
     fontWeight: '700',
     fontSize: 32,
     lineHeight: 40,
@@ -31,7 +36,7 @@ export const Typography = {
   } satisfies TextStyle,
 
   headlineLg: {
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.bold,
     fontWeight: '700',
     fontSize: 24,
     lineHeight: 32,
@@ -39,14 +44,14 @@ export const Typography = {
   } satisfies TextStyle,
 
   headlineLgMobile: {
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.bold,
     fontWeight: '700',
     fontSize: 28,
     lineHeight: 36,
   } satisfies TextStyle,
 
   headlineMd: {
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     fontSize: 20,
     lineHeight: 28,
@@ -72,14 +77,14 @@ export const Typography = {
   } satisfies TextStyle,
 
   labelLg: {
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     fontSize: 14,
     lineHeight: 20,
   } satisfies TextStyle,
 
   labelMd: {
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.medium,
     fontWeight: '500',
     fontSize: 12,
     lineHeight: 16,
@@ -87,7 +92,7 @@ export const Typography = {
 
   // Price / metadata label — uppercase with tracking
   labelCaps: {
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     fontSize: 12,
     lineHeight: 16,
@@ -95,5 +100,6 @@ export const Typography = {
     textTransform: 'uppercase' as const,
   } satisfies TextStyle,
 } as const;
+
 
 export type TypographyToken = keyof typeof Typography;

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/app/_layout';
 import { fetchListings, getCoverUrl } from '@/features/listings/api';
 import { MOCK_INTERESTS } from '@/lib/mock/data';
+import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import type { ListingWithPhotos } from '@/lib/supabase/types';
 
 export default function LandlordHomeScreen() {
@@ -90,11 +92,16 @@ export default function LandlordHomeScreen() {
         </View>
 
         {loading ? (
-          <View className="py-10"><ActivityIndicator color="#047857" /></View>
+          <>
+            <SkeletonLoader.Card />
+            <SkeletonLoader.Card />
+          </>
         ) : listings.length === 0 ? (
-          <View className="bg-white p-5 rounded-xl border border-gray-100">
-            <Text className="text-sm text-gray-500">No listings yet. Post your first property to go live.</Text>
-          </View>
+          <Animated.View entering={FadeIn.duration(400)} className="items-center py-14">
+            <Text style={{ fontSize: 40, marginBottom: 12 }}>🏠</Text>
+            <Text className="text-base font-bold text-gray-700 mb-1">No listings yet</Text>
+            <Text className="text-sm text-gray-400 text-center">Post your first property to go live.</Text>
+          </Animated.View>
         ) : (
           listings.map((item) => {
             const rentedOut = item.status === 'rented_out';

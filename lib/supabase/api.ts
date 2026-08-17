@@ -41,8 +41,7 @@ export async function updateLeadStatus(leadId: string, status: Lead['status']) {
 }
 
 export async function closeDeal(params: {
-  lead_id: string;
-  interest_id?: string;
+  interest_id: string;
   tenant_id: string;
   landlord_id: string;
   listing_id: string;
@@ -52,8 +51,7 @@ export async function closeDeal(params: {
   await delay(600);
 
   // Update interest status
-  const interestId = params.interest_id || params.lead_id;
-  const idx = MOCK_INTERESTS.findIndex((i) => i.id === interestId);
+  const idx = MOCK_INTERESTS.findIndex((i) => i.id === params.interest_id);
   if (idx !== -1) {
     MOCK_INTERESTS[idx] = { ...MOCK_INTERESTS[idx], status: 'linked', updated_at: new Date().toISOString() };
     // Mark the listing rented out

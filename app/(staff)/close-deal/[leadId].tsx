@@ -1,10 +1,65 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  withSequence,
+  withDelay,
+  ZoomIn,
+} from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import HeaderBar from '@/components/ui/HeaderBar';
 import { closeDeal, getStaffLeads } from '@/lib/supabase/api';
 import { useAuth } from '@/app/_layout';
 import type { Lead } from '@/lib/supabase/types';
+
+/** Stamp that slams in with an elastic spring, then stays. */
+function LinkedStamp({ visible }: { visible: boolean }) {
+  const scale = useSharedValue(visible ? 1 : 0);
+  const rotate = useSharedValue(visible ? '-8deg' : '0deg');
+  const opacity = useSharedValue(visible ? 1 : 0);
+
+  useEffect(() => {
+    if (visible) {
+      scale.value = withSequence(
+        withTiming(0, { duration: 0 }),
+        withDelay(120, withSpring(1.15, { damping: 6, stiffness: 220 })),
+        withSpring(1, { damping: 10, stiffness: 180 }),
+      );
+      opacity.value = withDelay(120, withTiming(1, { duration: 80 }));
+    }
+  }, [visible]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }, { rotate: '-8deg' }],
+  }));
+
+  if (!visible) return null;
+  return (
+    <Animated.View style={[animStyle, {
+      alignSelf: 'center',
+      borderWidth: 4,
+      borderColor: '#047857',
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 28,
+      marginVertical: 28,
+    }]}>
+      <Text style={{
+        fontSize: 26,
+        fontWeight: '900',
+        color: '#047857',
+        letterSpacing: 6,
+        opacity: 0.88,
+      }}>
+        LINKED
+      </Text>
+    </Animated.View>
+  );
+}
 
 export default function CloseDealScreen() {
   const { leadId } = useLocalSearchParams();
@@ -15,6 +70,7 @@ export default function CloseDealScreen() {
   const [agreedRent, setAgreedRent] = useState('25000');
   const [loading, setLoading] = useState(false);
   const [lead, setLead] = useState<Lead | null>(null);
+  const [dealClosed, setDealClosed] = useState(false);
 
   const rentNum = parseFloat(agreedRent.replace(/,/g, '')) || 0;
   const calculatedCommission = Math.round(rentNum * 0.1);
@@ -52,8 +108,7 @@ export default function CloseDealScreen() {
     setLoading(true);
     try {
       await closeDeal({
-        lead_id: selectedLeadId,
-        interest_id: selectedLeadId, // interests table row ID (pilot: lead_id == interest_id)
+        interest_id: selectedLeadId,
         tenant_id: lead.tenant_id,
         landlord_id: lead.landlord_id,
         listing_id: lead.listing_id,
@@ -61,17 +116,37 @@ export default function CloseDealScreen() {
         commission_amount: calculatedCommission,
       });
 
-      Alert.alert(
-        'Deal Closed Successfully',
-        `Commission of ${calculatedCommission.toLocaleString()} ETB created as pending payout.`,
-        [{ text: 'View Earnings', onPress: () => router.replace('/(staff)/earnings') }]
-      );
+      // Show the LINKED stamp animation, then navigate after a brief beat.
+      setDealClosed(true);
+      setTimeout(() => {
+        router.replace('/(staff)/earnings');
+      }, 2200);
     } catch (e) {
       Alert.alert('Transaction Failed', (e as Error).message || 'Could not close deal.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (dealClosed) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <LinkedStamp visible />
+        <Animated.Text
+          entering={ZoomIn.delay(500).duration(300)}
+          style={{ fontSize: 16, fontWeight: '700', color: '#1F2937', textAlign: 'center', marginBottom: 8 }}
+        >
+          Deal Closed Successfully!
+        </Animated.Text>
+        <Animated.Text
+          entering={ZoomIn.delay(700).duration(300)}
+          style={{ fontSize: 13, color: '#6B7280', textAlign: 'center' }}
+        >
+          Commission of {calculatedCommission.toLocaleString()} ETB{'\n'}added as a pending payout.
+        </Animated.Text>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-white pt-8 justify-between">

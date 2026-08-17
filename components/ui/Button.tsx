@@ -1,33 +1,38 @@
-import { TouchableOpacity, Text, type TouchableOpacityProps } from 'react-native';
+import { Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
 import { Colors, Typography, Spacing, Radius } from '@/constants/colors';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'destructive';
 
-type ButtonProps = TouchableOpacityProps & {
+type ButtonProps = {
   title: string;
   variant?: ButtonVariant;
+  disabled?: boolean;
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
 };
 
-export function Button({ title, variant = 'primary', style, disabled, ...props }: ButtonProps) {
+export function Button({ title, variant = 'primary', style, disabled, onPress }: ButtonProps) {
   const backgroundColor =
     variant === 'primary'
       ? Colors.primary
       : variant === 'secondary'
         ? Colors.surfaceContainerHigh
-        : 'transparent';
+        : variant === 'destructive'
+          ? Colors.error
+          : 'transparent';
 
   const textColor =
-    variant === 'primary'
+    variant === 'primary' || variant === 'destructive'
       ? Colors.onPrimary
       : variant === 'secondary'
         ? Colors.primary
         : Colors.primary;
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.8}
+    <Pressable
+      onPress={onPress}
       disabled={disabled}
-      style={[
+      style={({ pressed }) => [
         {
           backgroundColor,
           paddingVertical: Spacing.md,
@@ -35,14 +40,15 @@ export function Button({ title, variant = 'primary', style, disabled, ...props }
           borderRadius: Radius.md,
           borderWidth: variant === 'outline' ? 1 : 0,
           borderColor: Colors.primary,
-          opacity: disabled ? 0.5 : 1,
+          opacity: disabled ? 0.5 : pressed ? 0.88 : 1,
+          transform: [{ scale: pressed && !disabled ? 0.98 : 1 }],
         },
         style,
       ]}
-      {...props}>
+    >
       <Text style={[Typography.labelLg, { color: textColor, textAlign: 'center' }]}>
         {title}
       </Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 }

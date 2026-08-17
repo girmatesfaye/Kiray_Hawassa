@@ -44,18 +44,7 @@ CREATE TABLE IF NOT EXISTS listings (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 3. Leads Table
-CREATE TABLE IF NOT EXISTS leads (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
-  connector_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  status TEXT NOT NULL DEFAULT 'waiting_for_call' CHECK (status IN ('waiting_for_call', 'visit_scheduled', 'linked', 'not_selected')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- 4. Links Table (Deal Closed)
+-- 3. Links Table (Deal Closed)
 CREATE TABLE IF NOT EXISTS links (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -66,7 +55,7 @@ CREATE TABLE IF NOT EXISTS links (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 5. Payouts Table
+-- 4. Payouts Table
 CREATE TABLE IF NOT EXISTS payouts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   link_id UUID NOT NULL REFERENCES links(id) ON DELETE CASCADE,
@@ -77,7 +66,7 @@ CREATE TABLE IF NOT EXISTS payouts (
   paid_at TIMESTAMPTZ
 );
 
--- 6. Notifications Table
+-- 5. Notifications Table
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -90,7 +79,6 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- Enable RLS
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payouts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
@@ -122,12 +110,3 @@ SELECT
     ELSE NULL
   END AS revealed_phone
 FROM profiles p;
-
--- Leads: tenant can insert own leads, connector & landlord can read relevant leads, staff can update
-CREATE POLICY "Tenants can create leads" ON leads FOR INSERT WITH CHECK (auth.uid() = tenant_id);
-CREATE POLICY "Tenant can view own leads" ON leads FOR SELECT USING (auth.uid() = tenant_id);
-CREATE POLICY "Connector can view assigned leads" ON leads FOR SELECT USING (auth.uid() = connector_id);
-CREATE POLICY "Connector can update assigned leads" ON leads FOR UPDATE USING (auth.uid() = connector_id);
-CREATE POLICY "Landlord can view leads for own listings" ON leads FOR SELECT USING (
-  EXISTS (SELECT 1 FROM listings WHERE listings.id = leads.listing_id AND listings.landlord_id = auth.uid())
-);

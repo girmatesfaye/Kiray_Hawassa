@@ -3,6 +3,8 @@ import { View, Text } from 'react-native';
 import { useAuth } from '@/app/_layout';
 import { Colors } from '@/constants/colors';
 
+import { FontFamily } from '@/constants/typography';
+
 export default function TenantLayout() {
   const { role, isLoading } = useAuth();
 
@@ -22,8 +24,16 @@ export default function TenantLayout() {
         headerShown: false,
         tabBarActiveTintColor: '#b45309',
         tabBarInactiveTintColor: '#9CA3AF',
-        tabBarStyle: { borderTopWidth: 1, borderTopColor: '#F3F4F6', paddingBottom: 4 },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarStyle: {
+          height: 62,
+          borderTopWidth: 1,
+          borderTopColor: '#F3F4F6',
+          paddingBottom: 8,
+          paddingTop: 6,
+          backgroundColor: '#FFFFFF',
+        },
+        tabBarItemStyle: { minHeight: 48, justifyContent: 'center' },
+        tabBarLabelStyle: { fontSize: 11, fontFamily: FontFamily.semiBold, fontWeight: '600' },
       }}
     >
       <Tabs.Screen

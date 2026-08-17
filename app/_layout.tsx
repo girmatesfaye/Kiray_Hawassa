@@ -75,6 +75,9 @@ export function useAuth() {
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     [FontFamily.regular]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
+    [FontFamily.medium]: require('../assets/fonts/PlusJakartaSans-Medium.ttf'),
+    [FontFamily.semiBold]: require('../assets/fonts/PlusJakartaSans-SemiBold.ttf'),
+    [FontFamily.bold]: require('../assets/fonts/PlusJakartaSans-Bold.ttf'),
   });
 
   const [session, setSession] = useState<AuthContextType['session']>(null);
