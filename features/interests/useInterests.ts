@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/useAuth';
 import { fetchInterests } from './api';
 
+// Realtime subscription removed for mock mode.
+// Re-add supabase channel when switching to real data.
 export function useInterests() {
   const { session } = useAuth();
   const [interests, setInterests] = useState<any[]>([]);
@@ -9,8 +11,9 @@ export function useInterests() {
 
   useEffect(() => {
     if (!session) return;
+    const userId = session.user.id;
     setIsLoading(true);
-    fetchInterests(session.user.id)
+    fetchInterests(userId)
       .then((data) => setInterests(data || []))
       .finally(() => setIsLoading(false));
   }, [session]);

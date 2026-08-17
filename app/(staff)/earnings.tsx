@@ -11,7 +11,7 @@ export default function StaffEarningsScreen() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const staffId = session?.user?.id || 'staff-01';
+  const staffId = session?.user?.id || 'staff-001';
 
   const loadPayouts = async () => {
     const data = await getStaffPayouts(staffId);

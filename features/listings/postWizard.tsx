@@ -59,7 +59,7 @@ const createEmptyDraft = (): ListingDraft => ({
   hasElectric: false,
   subcity: '',
   locationText: '',
-  acceptedTerms: true,
+  acceptedTerms: false,
 });
 
 const WizardContext = createContext<WizardContextValue | undefined>(undefined);

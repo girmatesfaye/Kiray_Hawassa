@@ -1,28 +1,45 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Linking, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import HeaderBar from '@/components/ui/HeaderBar';
-import { getStaffPayouts } from '@/lib/supabase/api';
-import { Payout } from '@/lib/supabase/types';
+import { MOCK_LISTINGS, MOCK_INTERESTS, MOCK_CONNECTOR, MOCK_PAYOUTS } from '@/lib/mock/data';
 
 export default function LandlordListingDetailScreen() {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
 
-  const listingId = (id as string) || '1';
-  const isRentedOut = listingId === '2'; // Listing 2 simulated as Rented Out / Deal Closed
+  const listingId = (id as string) || '';
+  const listing = MOCK_LISTINGS.find((l) => l.id === listingId);
 
-  const [payouts, setPayouts] = useState<Payout[]>([]);
+  if (!listing) {
+    return (
+      <View className="flex-1 bg-gray-50 pt-8">
+        <HeaderBar title="Property Overview" showBack />
+        <View className="flex-1 items-center justify-center px-8">
+          <Text className="text-xl font-bold text-gray-900 mb-2">Listing not found</Text>
+          <Text className="text-sm text-gray-500 text-center mb-6">
+            This listing may have been removed or the link is stale.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.replace('/(landlord)/home')}
+            className="bg-emerald-700 px-6 py-3 rounded-xl"
+          >
+            <Text className="text-sm font-bold text-white">Back to Dashboard</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
-  useEffect(() => {
-    getStaffPayouts('staff-01').then((res) => setPayouts(res));
-  }, []);
+  const isRentedOut = listing.status === 'rented_out';
 
-  // Find paid payout associated with this listing deal
-  const paidPayout = payouts.find(
-    (p) => p.status === 'paid' && (p.link?.listing_id === listingId || listingId === '2')
+  const interestCount = MOCK_INTERESTS.filter((i) => i.listing_id === listingId).length;
+
+  const paidPayout = MOCK_PAYOUTS.find(
+    (p) => p.status === 'paid' && p.link?.listing_id === listingId
   );
 
-  const connectorPhone = '+251 930 112 233';
+  const connectorPhone = MOCK_CONNECTOR.phone ?? '';
 
   const handleCallConnector = () => {
     Linking.openURL(`tel:${connectorPhone.replace(/\s+/g, '')}`);
@@ -36,18 +53,14 @@ export default function LandlordListingDetailScreen() {
         {/* Listing Banner Card */}
         <View className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-4">
           <Image
-            source={{
-              uri: isRentedOut
-                ? 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=600'
-                : 'https://lh3.googleusercontent.com/aida/AP1WRLv7n9ZOygo_lFtyhSaqYBYa3SdY1iijTNEluSVYWjjbi8ISBf1-WyHypkJjcygs44a91Fr6SR0sRymrGKNbKQJUeGtKrVFKPmHQI40TFgzxVolJX4tEJDpReiAGH432mcnt76QzqNbU8NLZdjKVyRQvn4YTrszxNv8rT33gRb6CBb39sIxL7qVlZI3x3TI7Y4FTeOqZzGzhaUvSp9C-b8Tzn81xscTnxyrArX2DFIixpf9pKl-ajf_eBEw',
-            }}
+            source={{ uri: listing.image_url ?? undefined }}
             className="w-full h-44"
             resizeMode="cover"
           />
           <View className="p-4">
             <View className="flex-row justify-between items-start mb-1">
               <Text className="text-xl font-bold text-gray-900 flex-1 mr-2">
-                {isRentedOut ? 'Commercial Storefront Piassa' : 'Modern 2BR Lakeside Villa'}
+                {listing.title}
               </Text>
               <View
                 className={`px-3 py-1 rounded-full ${
@@ -64,10 +77,10 @@ export default function LandlordListingDetailScreen() {
               </View>
             </View>
             <Text className="text-sm font-extrabold text-emerald-700 mb-2">
-              {isRentedOut ? '40,000 ETB / month' : '25,000 ETB / month'}
+              {listing.price.toLocaleString()} ETB / month
             </Text>
             <Text className="text-xs text-gray-500">
-              {isRentedOut ? 'Piassa Main Street, Hawassa' : 'Haile Resort Area, Hawassa'}
+              {listing.location_text ?? listing.location}
             </Text>
           </View>
         </View>
@@ -77,7 +90,7 @@ export default function LandlordListingDetailScreen() {
         <View className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-4">
           <View className="flex-row justify-between items-center mb-3">
             <View>
-              <Text className="text-base font-bold text-gray-900">Abebe (Hawassa Connector)</Text>
+              <Text className="text-base font-bold text-gray-900">{MOCK_CONNECTOR.full_name}</Text>
               <Text className="text-xs text-gray-500">Dedicated staff handling inquiries for this listing</Text>
             </View>
             <TouchableOpacity
@@ -120,7 +133,9 @@ export default function LandlordListingDetailScreen() {
         <View className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
           <View className="flex-row justify-between items-center mb-2">
             <Text className="text-xs font-semibold text-gray-500">Active Tenant Inquiries</Text>
-            <Text className="text-sm font-bold text-gray-900">{isRentedOut ? '2 leads' : '4 leads'}</Text>
+            <Text className="text-sm font-bold text-gray-900">
+              {interestCount} {interestCount === 1 ? 'lead' : 'leads'}
+            </Text>
           </View>
           <Text className="text-xs text-gray-500 leading-5">
             Your assigned connector contacts all interested tenants, verifies their credentials, and arranges property viewings.

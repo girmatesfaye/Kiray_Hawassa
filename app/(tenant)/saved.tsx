@@ -14,7 +14,10 @@ export default function SavedListingsScreen() {
 
   const loadSaved = async () => {
     const tenantId = session?.user?.id;
-    if (!tenantId) return;
+    if (!tenantId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       setSavedItems(await fetchSavedListings(tenantId));

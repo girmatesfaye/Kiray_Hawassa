@@ -21,6 +21,9 @@ export default function StaffLayout() {
       <Tabs.Screen name="leads" options={{ title: 'Leads' }} />
       <Tabs.Screen name="schedule" options={{ title: 'Schedule' }} />
       <Tabs.Screen name="earnings" options={{ title: 'Earnings' }} />
+      {/* Hidden screens — navigable but not shown in tab bar */}
+      <Tabs.Screen name="add-lead" options={{ href: null }} />
+      <Tabs.Screen name="close-deal/[leadId]" options={{ href: null }} />
     </Tabs>
   );
 }

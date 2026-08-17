@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/app/_layout';
-import { supabase } from '@/lib/supabase/client';
 import { fetchListings, getCoverUrl } from '@/features/listings/api';
+import { MOCK_INTERESTS } from '@/lib/mock/data';
 import type { ListingWithPhotos } from '@/lib/supabase/types';
 
 export default function LandlordHomeScreen() {
@@ -21,20 +21,13 @@ export default function LandlordHomeScreen() {
       const data = await fetchListings({ landlordId });
       setListings(data);
       const ids = data.map((listing) => listing.id);
-      if (ids.length > 0) {
-        const { data: interests } = await supabase
-          .from('interests')
-          .select('listing_id')
-          .in('listing_id', ids);
-        setInterestCounts(
-          (interests || []).reduce<Record<string, number>>((acc, row) => {
-            acc[row.listing_id] = (acc[row.listing_id] || 0) + 1;
-            return acc;
-          }, {})
-        );
-      } else {
-        setInterestCounts({});
-      }
+      const counts = MOCK_INTERESTS
+        .filter((i) => ids.includes(i.listing_id))
+        .reduce<Record<string, number>>((acc, i) => {
+          acc[i.listing_id] = (acc[i.listing_id] || 0) + 1;
+          return acc;
+        }, {});
+      setInterestCounts(counts);
     } finally {
       setLoading(false);
     }
@@ -44,18 +37,7 @@ export default function LandlordHomeScreen() {
     loadData();
   }, [session?.user?.id]);
 
-  useEffect(() => {
-    const landlordId = session?.user?.id;
-    if (!landlordId) return;
-    const channel = supabase
-      .channel(`landlord-home-${landlordId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'interests' }, loadData)
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [session?.user?.id]);
+
 
   const activeCount = listings.filter((item) => item.status === 'available').length;
   const rentedCount = listings.filter((item) => item.status === 'rented_out').length;

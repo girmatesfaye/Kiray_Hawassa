@@ -1,64 +1,68 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/app/_layout';
+import { Role } from '@/lib/supabase/types';
+
+// ---------------------------------------------------------------------------
+// MOCK LOGIN — tap any role to jump straight into that role's home screen.
+// Replace with real OTP flow when connecting Supabase.
+// ---------------------------------------------------------------------------
+
+const ROLES: { role: Role; label: string; emoji: string; color: string; bg: string }[] = [
+  { role: 'tenant',   label: 'Enter as Tenant',   emoji: '🏠', color: 'bg-amber-700',  bg: 'bg-amber-50'  },
+  { role: 'landlord', label: 'Enter as Landlord',  emoji: '🔑', color: 'bg-emerald-700', bg: 'bg-emerald-50' },
+  { role: 'staff',    label: 'Enter as Staff',     emoji: '🎯', color: 'bg-blue-700',   bg: 'bg-blue-50'   },
+];
 
 export default function PhoneScreen() {
   const router = useRouter();
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const { signIn } = useAuth();
+  const [loading, setLoading] = useState<Role | null>(null);
 
-  const handleContinue = () => {
-    if (phoneNumber.length >= 9) {
-      router.push('/(auth)/otp');
-    }
+  const handleEnter = async (role: Role) => {
+    setLoading(role);
+    // signIn(phone, roleOrOtp) — in mock mode the second arg is the role string
+    await signIn('mock', role);
+    router.replace('/');
+    setLoading(null);
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-white justify-between p-6"
-    >
-      <View className="pt-12">
-        <Text className="text-3xl font-bold text-gray-900 mb-2">Welcome to Kira</Text>
-        <Text className="text-base text-gray-600 mb-8">
-          Hawassa&apos;s premier real estate & rental marketplace. Enter your phone number to proceed.
+    <View className="flex-1 bg-white justify-between p-6 pt-14">
+      <View>
+        <Text className="text-3xl font-bold text-gray-900 mb-2">Welcome to Kiray</Text>
+        <Text className="text-base text-gray-500 mb-2">
+          Hawassa&apos;s rental marketplace
         </Text>
-
-        <Text className="text-sm font-semibold text-gray-700 mb-2">Phone Number</Text>
-        <View className="flex-row items-center border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 mb-6">
-          <Text className="text-base font-bold text-gray-700 mr-2">+251</Text>
-          <View className="h-5 w-[1px] bg-gray-300 mr-3" />
-          <TextInput
-            className="flex-1 text-base text-gray-900 font-medium"
-            placeholder="912 345 678"
-            placeholderTextColor="#9CA3AF"
-            keyboardType="phone-pad"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            maxLength={10}
-          />
+        <View className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-8">
+          <Text className="text-xs font-bold text-amber-800">🧪 Mock Mode — pick a role to explore</Text>
         </View>
+
+        {ROLES.map(({ role, label, emoji, color, bg }) => (
+          <TouchableOpacity
+            key={role}
+            onPress={() => handleEnter(role)}
+            disabled={loading !== null}
+            activeOpacity={0.85}
+            className={`${bg} border border-gray-200 rounded-2xl p-5 mb-4 flex-row items-center justify-between`}
+          >
+            <View className="flex-row items-center">
+              <Text className="text-3xl mr-4">{emoji}</Text>
+              <Text className="text-base font-bold text-gray-900">{label}</Text>
+            </View>
+            {loading === role ? (
+              <ActivityIndicator color="#374151" />
+            ) : (
+              <Text className="text-gray-400 text-lg">→</Text>
+            )}
+          </TouchableOpacity>
+        ))}
       </View>
 
-      <View className="pb-6">
-        <TouchableOpacity
-          onPress={handleContinue}
-          activeOpacity={0.8}
-          className={`py-4 rounded-xl items-center justify-center ${
-            phoneNumber.length >= 9 ? 'bg-amber-700' : 'bg-gray-200'
-          }`}
-        >
-          <Text className={`text-base font-bold ${phoneNumber.length >= 9 ? 'text-white' : 'text-gray-400'}`}>
-            Send Verification Code
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          onPress={() => router.push('/(auth)/sign-in')}
-          className="mt-4 py-2 items-center"
-        >
-          <Text className="text-sm text-amber-700 font-semibold">Already have an account? Sign In</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      <Text className="text-center text-xs text-gray-400 pb-4">
+        Mock data — no Supabase connection required
+      </Text>
+    </View>
   );
 }

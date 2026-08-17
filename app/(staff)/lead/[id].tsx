@@ -4,6 +4,19 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import HeaderBar from '@/components/ui/HeaderBar';
 import { getStaffLeads, updateLeadStatus } from '@/lib/supabase/api';
 import { Lead } from '@/lib/supabase/types';
+import { MOCK_SCHEDULES } from '@/lib/mock/data';
+
+function formatTimestamp(ts: string): string {
+  try {
+    const d = new Date(ts);
+    return d.toLocaleString('en-US', {
+      month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true,
+    });
+  } catch {
+    return ts;
+  }
+}
 
 export default function StaffLeadDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -11,11 +24,18 @@ export default function StaffLeadDetailScreen() {
   const leadId = (id as string) || '1';
 
   const [lead, setLead] = useState<Lead | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   const fetchLead = async () => {
     const leads = await getStaffLeads('All');
-    const match = leads.find((l) => l.id === leadId) || leads[0];
-    setLead(match);
+    const match = leads.find((l) => l.id === leadId);
+    if (match === undefined) {
+      setLead(null);
+      setNotFound(true);
+    } else {
+      setLead(match);
+      setNotFound(false);
+    }
   };
 
   useEffect(() => {
@@ -56,6 +76,73 @@ export default function StaffLeadDetailScreen() {
       Linking.openURL(`tel:${phone.replace(/\s+/g, '')}`);
     }
   };
+
+  // Build timeline entries from actual lead data
+  const timelineEntries: { timestamp: string; label: string; color: string }[] = [];
+
+  if (lead) {
+    // Always: interest created
+    timelineEntries.push({
+      timestamp: lead.created_at,
+      label: 'Tenant expressed interest via app',
+      color: 'text-gray-600',
+    });
+
+    // Visit scheduled: check MOCK_SCHEDULES first (has real saved date string),
+    // fall back to lead.updated_at if status is visit_scheduled
+    const schedule = MOCK_SCHEDULES[leadId];
+    if (schedule) {
+      timelineEntries.push({
+        timestamp: schedule.savedAt,
+        label: `Visit scheduled — ${schedule.date} at ${schedule.location}`,
+        color: 'text-blue-700',
+      });
+    } else if (lead.status === 'visit_scheduled') {
+      timelineEntries.push({
+        timestamp: lead.updated_at,
+        label: 'Visit scheduled by connector',
+        color: 'text-blue-700',
+      });
+    }
+
+    // Linked / deal closed
+    if (lead.status === 'linked') {
+      timelineEntries.push({
+        timestamp: lead.updated_at,
+        label: 'Deal closed — contacts revealed, payout logged',
+        color: 'text-emerald-700',
+      });
+    }
+
+    // Dropped
+    if (lead.status === 'not_selected') {
+      timelineEntries.push({
+        timestamp: lead.updated_at,
+        label: 'Lead marked as Not Interested by staff',
+        color: 'text-red-600',
+      });
+    }
+  }
+
+  if (notFound) {
+    return (
+      <View className="flex-1 bg-gray-50 pt-8">
+        <HeaderBar title="Lead Detail" showBack />
+        <View className="flex-1 items-center justify-center px-8">
+          <Text className="text-xl font-bold text-gray-900 mb-2">Lead not found</Text>
+          <Text className="text-sm text-gray-500 text-center mb-6">
+            This lead may have been removed or the link is stale.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.replace('/(staff)/leads')}
+            className="bg-blue-700 px-6 py-3 rounded-xl"
+          >
+            <Text className="text-sm font-bold text-white">Back to Leads</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-gray-50 pt-8 justify-between">
@@ -155,20 +242,31 @@ export default function StaffLeadDetailScreen() {
             </Text>
           </View>
 
+          {/* Scheduled Visit Card */}
+          {MOCK_SCHEDULES[leadId] && (
+            <>
+              <Text className="text-sm font-bold text-gray-700 mb-2">Scheduled Visit</Text>
+              <View className="bg-blue-50 border border-blue-200 p-4 rounded-2xl mb-4">
+                <View className="flex-row items-center mb-1">
+                  <Text className="text-xs font-bold text-blue-900">📅 Date & Time: </Text>
+                  <Text className="text-xs text-blue-800">{MOCK_SCHEDULES[leadId].date}</Text>
+                </View>
+                <View className="flex-row items-center">
+                  <Text className="text-xs font-bold text-blue-900">📍 Location: </Text>
+                  <Text className="text-xs text-blue-800">{MOCK_SCHEDULES[leadId].location}</Text>
+                </View>
+              </View>
+            </>
+          )}
+
           {/* Connector Timeline */}
           <Text className="text-sm font-bold text-gray-700 mb-2">Connector Activity Timeline</Text>
           <View className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
-            <Text className="text-xs text-gray-600 leading-5">
-              • Aug 10, 2:30 PM: Tenant expressed interest via app.
-            </Text>
-            <Text className="text-xs text-gray-600 leading-5 mt-1">
-              • Aug 10, 3:15 PM: Connector scheduled property viewing with landlord.
-            </Text>
-            {isDropped && (
-              <Text className="text-xs text-red-600 leading-5 font-semibold mt-1">
-                • Lead marked as &quot;Not Interested&quot; by staff.
+            {timelineEntries.map((entry, i) => (
+              <Text key={i} className={`text-xs leading-5 ${entry.color} ${i > 0 ? 'mt-1' : ''}`}>
+                • {formatTimestamp(entry.timestamp)}: {entry.label}
               </Text>
-            )}
+            ))}
           </View>
         </ScrollView>
       </View>
@@ -196,7 +294,7 @@ export default function StaffLeadDetailScreen() {
             )}
 
             <TouchableOpacity
-              onPress={() => router.push('/(staff)/schedule')}
+              onPress={() => router.push(`/(staff)/schedule?leadId=${leadId}`)}
               activeOpacity={0.8}
               className="flex-1 py-3.5 bg-gray-100 rounded-xl items-center justify-center"
             >

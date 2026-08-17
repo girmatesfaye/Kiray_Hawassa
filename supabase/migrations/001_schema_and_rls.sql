@@ -2,7 +2,7 @@
 -- Base schema and Security policies for Kiray Hawassa
 
 -- 1. Profiles Table extensions
-ALTER TABLE profiles 
+ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS fayida_id TEXT,
   ADD COLUMN IF NOT EXISTS occupation TEXT,
   ADD COLUMN IF NOT EXISTS subcity TEXT,
@@ -108,17 +108,26 @@ CREATE POLICY "Landlords can update own listings" ON listings FOR UPDATE USING (
 -- Contact Visibility Rule (Read-time check)
 -- Phone numbers of landlord/tenant visible if link exists
 CREATE OR REPLACE VIEW visible_contacts AS
-SELECT 
+SELECT
   p.id as target_user_id,
   p.full_name,
-  CASE 
+  CASE
     WHEN auth.uid() = p.id THEN p.phone
     WHEN EXISTS (
-      SELECT 1 FROM links l 
-      WHERE (l.tenant_id = auth.uid() AND l.landlord_id = p.id) 
+      SELECT 1 FROM links l
+      WHERE (l.tenant_id = auth.uid() AND l.landlord_id = p.id)
          OR (l.landlord_id = auth.uid() AND l.tenant_id = p.id)
     ) THEN p.phone
     WHEN (SELECT role FROM profiles WHERE id = auth.uid()) = 'staff' THEN p.phone
     ELSE NULL
   END AS revealed_phone
 FROM profiles p;
+
+-- Leads: tenant can insert own leads, connector & landlord can read relevant leads, staff can update
+CREATE POLICY "Tenants can create leads" ON leads FOR INSERT WITH CHECK (auth.uid() = tenant_id);
+CREATE POLICY "Tenant can view own leads" ON leads FOR SELECT USING (auth.uid() = tenant_id);
+CREATE POLICY "Connector can view assigned leads" ON leads FOR SELECT USING (auth.uid() = connector_id);
+CREATE POLICY "Connector can update assigned leads" ON leads FOR UPDATE USING (auth.uid() = connector_id);
+CREATE POLICY "Landlord can view leads for own listings" ON leads FOR SELECT USING (
+  EXISTS (SELECT 1 FROM listings WHERE listings.id = leads.listing_id AND listings.landlord_id = auth.uid())
+);

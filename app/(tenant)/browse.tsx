@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase/client';
 import { fetchListings, getCoverUrl } from '@/features/listings/api';
 import type { ListingWithPhotos } from '@/lib/supabase/types';
+import { StatusStamp } from '@/components/ui/StatusStamp';
 
 const categories = [
   { label: 'All', value: 'all' },
@@ -17,16 +17,19 @@ export default function BrowseScreen() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [subcity, setSubcity] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
   const [listings, setListings] = useState<ListingWithPhotos[]>([]);
   const [loading, setLoading] = useState(true);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadListings = async () => {
+  const loadListingsWithParams = async (searchVal: string, subcityVal: string, maxPriceVal: string) => {
     setLoading(true);
     try {
       const data = await fetchListings({
         type: selectedCategory,
-        search: search.trim() || undefined,
-        subcity: subcity.trim() || undefined,
+        search: searchVal.trim() || undefined,
+        subcity: subcityVal.trim() || undefined,
+        maxPrice: maxPriceVal ? Number(maxPriceVal.replace(/,/g, '')) : undefined,
       });
       setListings(data);
     } finally {
@@ -34,19 +37,26 @@ export default function BrowseScreen() {
     }
   };
 
+  const loadListings = () => loadListingsWithParams(search, subcity, maxPrice);
+
+  const debouncedLoad = (newSearch: string, newSubcity: string, newMaxPrice: string) => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      loadListingsWithParams(newSearch, newSubcity, newMaxPrice);
+    }, 250);
+  };
+
   useEffect(() => {
     loadListings();
   }, [selectedCategory]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel('tenant-browse-listings')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, loadListings)
-      .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      if (searchTimer.current) clearTimeout(searchTimer.current);
     };
-  }, [selectedCategory, search, subcity]);
+  }, []);
+
+
 
   return (
     <ScrollView className="flex-1 bg-gray-50">
@@ -70,7 +80,7 @@ export default function BrowseScreen() {
             placeholder="Search villas, apartments, shops..."
             placeholderTextColor="#9CA3AF"
             value={search}
-            onChangeText={setSearch}
+            onChangeText={(newVal) => { setSearch(newVal); debouncedLoad(newVal, subcity, maxPrice); }}
             onSubmitEditing={loadListings}
             returnKeyType="search"
           />
@@ -81,9 +91,21 @@ export default function BrowseScreen() {
             placeholder="Filter by subcity"
             placeholderTextColor="#9CA3AF"
             value={subcity}
-            onChangeText={setSubcity}
+            onChangeText={(newVal) => { setSubcity(newVal); debouncedLoad(search, newVal, maxPrice); }}
             onSubmitEditing={loadListings}
             returnKeyType="search"
+          />
+        </View>
+        <View className="bg-white rounded-xl px-4 py-3 shadow-sm mt-3">
+          <TextInput
+            className="text-gray-900 text-sm"
+            placeholder="Max rent e.g. 25000 ETB"
+            placeholderTextColor="#9CA3AF"
+            value={maxPrice}
+            onChangeText={(newVal) => { setMaxPrice(newVal); debouncedLoad(search, subcity, newVal); }}
+            onSubmitEditing={loadListings}
+            returnKeyType="search"
+            keyboardType="numeric"
           />
         </View>
       </View>
@@ -126,9 +148,10 @@ export default function BrowseScreen() {
                 key={item.id}
                 onPress={() => router.push(`/(tenant)/listing/${item.id}`)}
                 activeOpacity={0.9}
-                className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-4 ${rentedOut ? 'opacity-55' : ''}`}
+                className={`relative bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-4 ${rentedOut ? 'opacity-55' : ''}`}
               >
                 <Image source={{ uri: getCoverUrl(item) }} className="w-full h-48" resizeMode="cover" />
+                <StatusStamp status={rentedOut ? 'Rented Out' : 'Available'} />
                 <View className="p-4">
                   <View className="flex-row justify-between items-start mb-1">
                     <Text className="text-base font-bold text-gray-900 flex-1 mr-2">{item.title}</Text>

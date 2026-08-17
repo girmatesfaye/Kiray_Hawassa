@@ -1,12 +1,44 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import HeaderBar from '@/components/ui/HeaderBar';
+import { MOCK_SCHEDULES, MOCK_INTERESTS } from '@/lib/mock/data';
 
 export default function StaffScheduleScreen() {
   const router = useRouter();
+  const { leadId } = useLocalSearchParams<{ leadId: string }>();
   const [date, setDate] = useState('Tomorrow, 10:00 AM');
   const [location, setLocation] = useState('Haile Resort Gate, Hawassa');
+
+  const handleSave = () => {
+    if (!date.trim() || !location.trim()) {
+      Alert.alert('Missing Information', 'Please enter both a date/time and a meeting location.');
+      return;
+    }
+
+    if (leadId) {
+      // Persist schedule to mock store
+      MOCK_SCHEDULES[leadId] = {
+        date: date.trim(),
+        location: location.trim(),
+        savedAt: new Date().toISOString(),
+      };
+
+      // Update matching interest status to visit_scheduled
+      const idx = MOCK_INTERESTS.findIndex((i) => i.id === leadId);
+      if (idx !== -1) {
+        MOCK_INTERESTS[idx] = {
+          ...MOCK_INTERESTS[idx],
+          status: 'visit_scheduled',
+          updated_at: new Date().toISOString(),
+        };
+      }
+    }
+
+    Alert.alert('Visit Scheduled', 'The schedule has been saved and invites will be sent.', [
+      { text: 'OK', onPress: () => router.back() },
+    ]);
+  };
 
   return (
     <View className="flex-1 bg-white pt-8 justify-between">
@@ -48,7 +80,7 @@ export default function StaffScheduleScreen() {
 
       <View className="p-4 border-t border-gray-100 bg-white">
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleSave}
           activeOpacity={0.8}
           className="py-4 bg-blue-700 rounded-xl items-center justify-center shadow-sm"
         >

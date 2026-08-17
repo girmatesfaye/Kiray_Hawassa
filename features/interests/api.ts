@@ -1,94 +1,75 @@
-import { supabase } from '@/lib/supabase/client';
+// ---------------------------------------------------------------------------
+// INTERESTS API — mock implementation.
+// All functions match the real API signatures so screens need zero changes.
+// ---------------------------------------------------------------------------
+
 import type { Lead, Profile } from '@/lib/supabase/types';
+import { MOCK_CONNECTOR, MOCK_INTERESTS, MOCK_LISTINGS, MOCK_LANDLORD } from '@/lib/mock/data';
 
-const interestSelect =
-  '*, listing:listings(*, photos:listing_photos(*)), tenant:profiles!tenant_id(*), connector:profiles!interests_staff_id_fkey(*), landlord:profiles!interests_landlord_id_fkey(*)';
-
-function normalizeInterest(row: any): Lead {
-  return {
-    ...row,
-    connector_id: row.staff_id ?? null,
-    connector: row.connector ?? null,
-  } as Lead;
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function fetchActiveStaff() {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('role', 'staff')
-    .eq('is_complete', true)
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return data as Profile | null;
+export async function fetchActiveStaff(): Promise<Profile | null> {
+  return MOCK_CONNECTOR;
 }
 
 export async function createInterest(params: {
   tenantId: string;
   listingId: string;
   landlordId: string;
-}) {
-  const staff = await fetchActiveStaff();
+}): Promise<Lead> {
+  await delay(400);
 
-  // Pilot simplification: Hawassa launch has one active connector. If multiple
-  // connectors are added later, replace this with assignment/load balancing.
-  const { data, error } = await supabase
-    .from('interests')
-    .upsert(
-      {
-        tenant_id: params.tenantId,
-        listing_id: params.listingId,
-        landlord_id: params.landlordId,
-        staff_id: staff?.id ?? null,
-        status: 'waiting_for_call',
-      },
-      { onConflict: 'tenant_id,listing_id' }
-    )
-    .select(interestSelect)
-    .single();
+  // Check for existing interest (upsert behaviour)
+  const existing = MOCK_INTERESTS.find(
+    (i) => i.tenant_id === params.tenantId && i.listing_id === params.listingId
+  );
+  if (existing) return existing;
 
-  if (error) throw error;
-  return normalizeInterest(data);
+  const listing = MOCK_LISTINGS.find((l) => l.id === params.listingId);
+  const newInterest: Lead = {
+    id: `interest-${Date.now()}`,
+    tenant_id: params.tenantId,
+    listing_id: params.listingId,
+    landlord_id: params.landlordId,
+    staff_id: MOCK_CONNECTOR.id,
+    connector_id: MOCK_CONNECTOR.id,
+    status: 'waiting_for_call',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    connector: MOCK_CONNECTOR,
+    landlord: MOCK_LANDLORD,
+    listing: listing as any,
+  };
+  MOCK_INTERESTS.unshift(newInterest);
+  return newInterest;
 }
 
-export async function fetchTenantInterests(tenantId: string) {
-  const { data, error } = await supabase
-    .from('interests')
-    .select(interestSelect)
-    .eq('tenant_id', tenantId)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data || []).map(normalizeInterest);
+export async function fetchTenantInterests(tenantId: string): Promise<Lead[]> {
+  await delay(300);
+  return MOCK_INTERESTS.filter((i) => i.tenant_id === tenantId);
 }
 
 export const fetchInterests = fetchTenantInterests;
 
-export async function fetchStaffInterests(statusFilter?: string) {
-  let query = supabase
-    .from('interests')
-    .select(interestSelect)
-    .order('created_at', { ascending: false });
-
-  if (statusFilter && statusFilter !== 'All') {
-    if (statusFilter === 'New') query = query.eq('status', 'waiting_for_call');
-    if (statusFilter === 'Meeting Scheduled') query = query.eq('status', 'visit_scheduled');
-    if (statusFilter === 'Deal Closed') query = query.eq('status', 'linked');
-    if (statusFilter === 'Dropped') query = query.eq('status', 'not_selected');
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data || []).map(normalizeInterest);
+export async function fetchStaffInterests(statusFilter?: string): Promise<Lead[]> {
+  await delay(300);
+  if (!statusFilter || statusFilter === 'All') return [...MOCK_INTERESTS];
+  const statusMap: Record<string, Lead['status']> = {
+    'New': 'waiting_for_call',
+    'Meeting Scheduled': 'visit_scheduled',
+    'Deal Closed': 'linked',
+    'Dropped': 'not_selected',
+  };
+  const status = statusMap[statusFilter];
+  return status ? MOCK_INTERESTS.filter((i) => i.status === status) : [...MOCK_INTERESTS];
 }
 
-export async function updateInterestStatus(interestId: string, status: Lead['status']) {
-  const { data, error } = await supabase
-    .from('interests')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', interestId)
-    .select(interestSelect)
-    .single();
-  if (error) throw error;
-  return normalizeInterest(data);
+export async function updateInterestStatus(interestId: string, status: Lead['status']): Promise<Lead> {
+  await delay(200);
+  const idx = MOCK_INTERESTS.findIndex((i) => i.id === interestId);
+  if (idx === -1) throw new Error(`Interest ${interestId} not found`);
+  MOCK_INTERESTS[idx] = { ...MOCK_INTERESTS[idx], status, updated_at: new Date().toISOString() };
+  return MOCK_INTERESTS[idx];
 }

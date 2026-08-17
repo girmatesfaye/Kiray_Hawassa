@@ -55,9 +55,7 @@ export default function TenantLayout() {
         }}
       />
       {/* Non-tab routes — hidden from tab bar */}
-      <Tabs.Screen name="listing/[id]" options={{ href: null }} />
-      <Tabs.Screen name="search" options={{ href: null }} />
+
     </Tabs>
   );
 }
-

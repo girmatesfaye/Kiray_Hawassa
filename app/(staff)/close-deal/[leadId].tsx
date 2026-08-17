@@ -40,14 +40,24 @@ export default function CloseDealScreen() {
       return;
     }
 
+    const staffId = session?.user?.id || lead.staff_id || lead.connector_id || '';
+    if (!staffId) {
+      Alert.alert(
+        'Staff ID Missing',
+        'Unable to identify the staff member. Please sign out and sign in again.',
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       await closeDeal({
         lead_id: selectedLeadId,
+        interest_id: selectedLeadId, // interests table row ID (pilot: lead_id == interest_id)
         tenant_id: lead.tenant_id,
         landlord_id: lead.landlord_id,
         listing_id: lead.listing_id,
-        staff_id: session?.user?.id || lead.staff_id || lead.connector_id || '',
+        staff_id: staffId,
         commission_amount: calculatedCommission,
       });
 

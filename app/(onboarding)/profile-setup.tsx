@@ -2,17 +2,16 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/app/_layout';
-import { supabase } from '@/lib/supabase/client';
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
-  const { role, session } = useAuth();
-  
+  const { role } = useAuth();
+
   // Common fields
   const [name, setName] = useState('');
   const [subcity, setSubcity] = useState('');
   const [idPhotoUrl, setIdPhotoUrl] = useState<string | null>(null);
-  
+
   // Tenant-only fields
   const [occupation, setOccupation] = useState('');
   const [fayidaIdRaw, setFayidaIdRaw] = useState('');
@@ -53,40 +52,23 @@ export default function ProfileSetupScreen() {
 
     setSaving(true);
     try {
-      if (session?.user?.id) {
-        const updateData: Record<string, any> = {
-          full_name: name,
-          subcity: subcity || 'Hawassa Central',
-          is_complete: true,
-          updated_at: new Date().toISOString(),
-        };
+      // Mock mode — log the would-be update and navigate
+      console.log('[mock] profile update skipped', {
+        full_name: name,
+        subcity: subcity || 'Hawassa Central',
+        is_complete: true,
+        ...(role === 'tenant' && {
+          occupation,
+          fayida_id: `ET-${fayidaIdRaw}`,
+          id_photo_url: idPhotoUrl,
+        }),
+        ...(role === 'landlord' && { id_photo_url: idPhotoUrl }),
+      });
 
-        if (role === 'tenant') {
-          updateData.occupation = occupation;
-          updateData.fayida_id = `ET-${fayidaIdRaw}`;
-          updateData.id_photo_url = idPhotoUrl;
-        } else if (role === 'landlord') {
-          updateData.id_photo_url = idPhotoUrl;
-        }
-
-        await supabase.from('profiles').update(updateData).eq('id', session.user.id);
-      }
-
-      if (role === 'landlord') {
-        router.replace('/(landlord)/home');
-      } else if (role === 'staff') {
-        router.replace('/(staff)/leads');
-      } else {
-        router.replace('/(tenant)/browse');
-      }
+      router.replace('/');
     } catch (e) {
       console.error('Error saving profile:', e);
-      // Fallback redirect for mock flow
-      if (role === 'landlord') {
-        router.replace('/(landlord)/home');
-      } else {
-        router.replace('/(tenant)/browse');
-      }
+      Alert.alert('Error', 'Failed to save profile. Please try again.');
     } finally {
       setSaving(false);
     }

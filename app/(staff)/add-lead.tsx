@@ -1,13 +1,58 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import HeaderBar from '@/components/ui/HeaderBar';
+import { MOCK_INTERESTS, MOCK_CONNECTOR, MOCK_LISTINGS } from '@/lib/mock/data';
+import type { Lead } from '@/lib/supabase/types';
 
 export default function StaffAddLeadScreen() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
+
+  const handleCreateLead = () => {
+    if (!name.trim() || !phone.trim()) {
+      Alert.alert('Missing Information', 'Please enter both a name and a phone number.');
+      return;
+    }
+
+    const tenantId = `manual-tenant-${Date.now()}`;
+
+    const newLead: Lead = {
+      id: `manual-${Date.now()}`,
+      tenant_id: tenantId,
+      listing_id: MOCK_LISTINGS[0]?.id ?? '',
+      landlord_id: MOCK_LISTINGS[0]?.landlord_id ?? '',
+      staff_id: 'staff-001',
+      connector_id: 'staff-001',
+      status: 'waiting_for_call',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      connector: MOCK_CONNECTOR,
+      tenant: {
+        id: tenantId,
+        role: 'tenant',
+        full_name: name.trim(),
+        phone: phone.trim(),
+        avatar_url: null,
+        is_complete: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        fayida_id: null,
+        occupation: notes.trim() || null,
+        id_photo_url: null,
+        subcity: null,
+      },
+      listing: MOCK_LISTINGS[0],
+    };
+
+    MOCK_INTERESTS.unshift(newLead);
+
+    Alert.alert('Lead Created', `${name.trim()} has been added to your leads.`, [
+      { text: 'OK', onPress: () => router.replace('/(staff)/leads') },
+    ]);
+  };
 
   return (
     <View className="flex-1 bg-white pt-8 justify-between">
@@ -55,7 +100,7 @@ export default function StaffAddLeadScreen() {
 
       <View className="p-4 border-t border-gray-100 bg-white">
         <TouchableOpacity
-          onPress={() => router.replace('/(staff)/leads')}
+          onPress={handleCreateLead}
           activeOpacity={0.8}
           className="py-4 bg-blue-700 rounded-xl items-center justify-center shadow-sm"
         >

@@ -75,6 +75,19 @@ export default function PostListingStep1Photos() {
     });
   };
 
+  const removePhoto = (photoId: string) => {
+    const remaining = draft.photos.filter((p) => p.id !== photoId);
+    const wascover = draft.photos.find((p) => p.id === photoId)?.isCover;
+    const updated =
+      wascover && remaining.length > 0
+        ? remaining.map((p, i) => ({ ...p, isCover: i === 0 }))
+        : remaining;
+    updateDraft({ photos: updated });
+  };
+
+  const photoCount = draft.photos.length;
+  const canProceed = photoCount >= 3 && !uploading;
+
   return (
     <View className="flex-1 bg-white pt-8 justify-between">
       <View className="flex-1">
@@ -99,8 +112,13 @@ export default function PostListingStep1Photos() {
             <Text className="text-xs text-emerald-600 mt-1">Exterior, rooms, bathroom, and utilities</Text>
           </TouchableOpacity>
 
-          <Text className="text-sm font-bold text-gray-700 mb-2">Selected Photos</Text>
-          {draft.photos.length === 0 ? (
+          <Text className="text-sm font-bold text-gray-700 mb-1">Selected Photos</Text>
+          {photoCount < 3 && (
+            <Text className="text-xs text-amber-700 mb-2">
+              Minimum 3 photos required ({photoCount}/3)
+            </Text>
+          )}
+          {photoCount === 0 ? (
             <View className="bg-gray-50 border border-gray-200 rounded-xl p-4">
               <Text className="text-sm text-gray-500">No photos selected yet.</Text>
             </View>
@@ -125,6 +143,17 @@ export default function PostListingStep1Photos() {
                         <Text className="text-[10px] font-bold text-white">Cover</Text>
                       </View>
                     )}
+                    {/* Delete button — bottom-right to avoid overlap with top badges */}
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        removePhoto(photo.id);
+                      }}
+                      activeOpacity={0.8}
+                      className="absolute right-2 bottom-2 bg-black/70 w-7 h-7 rounded-full items-center justify-center"
+                    >
+                      <Text className="text-white text-xs font-bold">×</Text>
+                    </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -136,14 +165,16 @@ export default function PostListingStep1Photos() {
       <View className="p-4 border-t border-gray-100 bg-white">
         <TouchableOpacity
           onPress={() => router.push('/(landlord)/post/details')}
-          disabled={draft.photos.length === 0 || uploading}
+          disabled={!canProceed}
           activeOpacity={0.8}
           className={`py-4 rounded-xl items-center justify-center shadow-sm ${
-            draft.photos.length === 0 || uploading ? 'bg-gray-200' : 'bg-emerald-700'
+            !canProceed ? 'bg-gray-200' : 'bg-emerald-700'
           }`}
         >
-          <Text className={`text-base font-bold ${draft.photos.length === 0 || uploading ? 'text-gray-400' : 'text-white'}`}>
-            Next: Property Details
+          <Text className={`text-base font-bold ${!canProceed ? 'text-gray-400' : 'text-white'}`}>
+            {photoCount < 3
+              ? `Add at least 3 photos (${photoCount}/3)`
+              : 'Next: Property Details'}
           </Text>
         </TouchableOpacity>
       </View>

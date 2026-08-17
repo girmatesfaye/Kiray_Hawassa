@@ -1,37 +1,80 @@
 import { Colors } from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
-import { supabase } from '@/lib/supabase/client';
 import { AuthContextType, Profile, Role } from '@/lib/supabase/types';
 import { useFonts } from 'expo-font';
-import { Redirect, SplashScreen, Stack } from 'expo-router';
+import { SplashScreen, Stack } from 'expo-router';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import '../global.css';
 
 SplashScreen.preventAutoHideAsync();
 
+// ---------------------------------------------------------------------------
+// MOCK AUTH — swap this file's contents back to the Supabase version when
+// you're ready to connect real data. Everything else in the app stays the same.
+// ---------------------------------------------------------------------------
+
+const MOCK_PROFILES: Record<Role, Profile> = {
+  landlord: {
+    id: 'landlord-001',
+    role: 'landlord',
+    full_name: 'Kebede Tassew',
+    phone: '+251 922 887 766',
+    avatar_url: null,
+    is_complete: true,
+    created_at: '2026-08-01',
+    updated_at: '2026-08-01',
+    fayida_id: null,
+    occupation: null,
+    id_photo_url: null,
+    subcity: 'Haile Resort Area',
+  },
+  tenant: {
+    id: 'tenant-001',
+    role: 'tenant',
+    full_name: 'Abebe Bikila',
+    phone: '+251 911 234 567',
+    avatar_url: null,
+    is_complete: true,
+    created_at: '2026-08-01',
+    updated_at: '2026-08-01',
+    fayida_id: 'ET-9821-3412-8841',
+    occupation: 'Civil Engineer',
+    id_photo_url: null,
+    subcity: 'Tabor Sub-City',
+  },
+  staff: {
+    id: 'staff-001',
+    role: 'staff',
+    full_name: 'Dawit (Connector)',
+    phone: '+251 930 112 233',
+    avatar_url: null,
+    is_complete: true,
+    created_at: '2026-08-01',
+    updated_at: '2026-08-01',
+    fayida_id: null,
+    occupation: 'Connector',
+    id_photo_url: null,
+    subcity: 'Hawassa Center',
+  },
+};
+
+// Fake session object — enough for any screen that reads session.user.id
+function makeMockSession(profile: Profile) {
+  return { user: { id: profile.id } } as any;
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({    
+  const [fontsLoaded, fontError] = useFonts({
     [FontFamily.regular]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
-    [FontFamily.medium]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
-    [FontFamily.semiBold]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
-    [FontFamily.bold]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
-    [FontFamily.extraBold]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
-    // [FontFamily.regular]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
-    // [FontFamily.medium]: require('../assets/fonts/PlusJakartaSans-Medium.ttf'),
-    // [FontFamily.semiBold]: require('../assets/fonts/PlusJakartaSans-SemiBold.ttf'),
-    // [FontFamily.bold]: require('../assets/fonts/PlusJakartaSans-Bold.ttf'),
-    // [FontFamily.extraBold]: require('../assets/fonts/PlusJakartaSans-ExtraBold.ttf'),
   });
 
   const [session, setSession] = useState<AuthContextType['session']>(null);
@@ -40,97 +83,34 @@ export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function prepare() {
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        setSession(currentSession);
-
-        if (currentSession?.user) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', currentSession.user.id)
-            .maybeSingle();
-          
-          if (data) {
-            setRole(data.role);
-            setProfile(data as Profile);
-          }
-        }
-
-        const { data: listener } = supabase.auth.onAuthStateChange(
-          async (_event, session) => {
-            setSession(session);
-            if (session?.user) {
-              const { data } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .maybeSingle();
-              
-              if (data) {
-                setRole(data.role);
-                setProfile(data as Profile);
-              }
-            } else {
-              setRole(null);
-              setProfile(null);
-            }
-          }
-        );
-
-        return () => {
-          listener.subscription.unsubscribe();
-        };
-      } catch (e) {
-        console.error('Auth prepare error:', e);
-      } finally {
-        try {
-          await SplashScreen.hideAsync();
-        } catch {}
-        setIsLoading(false);
-      }
-    }
-
-    prepare();
+    // No Supabase call — start unauthenticated
+    SplashScreen.hideAsync().catch(() => {});
+    setIsLoading(false);
   }, []);
 
-  const signIn = async (phone: string, otp: string) => {
-    const { error } = await supabase.auth.verifyOtp({
-      phone,
-      token: otp,
-      type: 'sms',
-    });
-    if (error) throw error;
+  // Called from the mock phone screen — just pick a role directly
+  const signIn = async (_phone: string, roleOrOtp: string) => {
+    const r = roleOrOtp as Role;
+    const p = MOCK_PROFILES[r] ?? MOCK_PROFILES.tenant;
+    setProfile(p);
+    setRole(p.role);
+    setSession(makeMockSession(p));
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
     setSession(null);
     setRole(null);
     setProfile(null);
   };
 
   const updateRole = async (newRole: Role) => {
-    if (!session?.user) throw new Error('No session');
-    // Security: Staff accounts are provisioned out-of-band only
-    if (newRole === 'staff') {
-      throw new Error('Staff role cannot be set through the app. Contact an administrator.');
-    }
-    const { data, error } = await supabase
-      .from('profiles')
-      .upsert({ id: session.user.id, role: newRole, is_complete: false })
-      .select()
-      .single();
-    if (error) throw error;
+    const p = { ...MOCK_PROFILES[newRole], role: newRole, is_complete: false };
     setRole(newRole);
-    setProfile(data as Profile);
+    setProfile(p);
+    setSession(makeMockSession(p));
   };
 
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
+  if (!fontsLoaded && !fontError) return null;
 
   if (fontError) {
     return (
@@ -140,9 +120,7 @@ export default function RootLayout() {
     );
   }
 
-  if (isLoading) {
-    return null;
-  }
+  if (isLoading) return null;
 
   const authContextValue: AuthContextType = {
     session,
@@ -155,48 +133,16 @@ export default function RootLayout() {
   };
 
   return (
-      <AuthContext.Provider value={authContextValue}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(onboarding)" />
-          <Stack.Screen name="(landlord)" />
-          <Stack.Screen name="(tenant)" />
-          <Stack.Screen name="(staff)" />
-          <Stack.Screen name="notifications" />
-        </Stack>
-        <RootRedirect />
-      </AuthContext.Provider>
+    <AuthContext.Provider value={authContextValue}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="(landlord)" />
+        <Stack.Screen name="(tenant)" />
+        <Stack.Screen name="(staff)" />
+        <Stack.Screen name="notifications" />
+      </Stack>
+    </AuthContext.Provider>
   );
-}
-
-function RootRedirect() {
-  const { session, role, profile, isLoading } = useAuth();
-
-  if (isLoading) return null;
-
-  if (!session) {
-    return <Redirect href="/(auth)/phone" />;
-  }
-
-  if (!role) {
-    return <Redirect href="/(onboarding)/role-choice" />;
-  }
-
-  if (role && !profile?.is_complete) {
-    return <Redirect href="/(onboarding)/profile-setup" />;
-  }
-
-  if (role === 'landlord') {
-    return <Redirect href="/(landlord)/home" />;
-  }
-
-  if (role === 'tenant') {
-    return <Redirect href="/(tenant)/browse" />;
-  }
-
-  if (role === 'staff') {
-    return <Redirect href="/(staff)/leads" />;
-  }
-
-  return null;
 }

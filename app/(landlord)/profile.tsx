@@ -6,7 +6,16 @@ import HeaderBar from '@/components/ui/HeaderBar';
 
 export default function LandlordProfileScreen() {
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
+
+  const initials = profile?.full_name
+    ? profile.full_name
+        .split(' ')
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : '?';
 
   const handleSignOut = async () => {
     try {
@@ -24,9 +33,9 @@ export default function LandlordProfileScreen() {
       <ScrollView className="flex-1 p-4">
         <View className="bg-white rounded-2xl p-5 items-center shadow-sm border border-gray-100 mb-6">
           <View className="w-20 h-20 bg-emerald-100 rounded-full items-center justify-center mb-3">
-            <Text className="text-3xl font-bold text-emerald-800">DG</Text>
+            <Text className="text-3xl font-bold text-emerald-800">{initials}</Text>
           </View>
-          <Text className="text-xl font-bold text-gray-900">Dawit Girma</Text>
+          <Text className="text-xl font-bold text-gray-900">{profile?.full_name ?? 'Landlord'}</Text>
           <Text className="text-sm text-gray-500 mb-2">Verified Property Owner</Text>
           <View className="bg-emerald-100 px-3 py-1 rounded-full">
             <Text className="text-xs font-bold text-emerald-800">Landlord Mode</Text>
@@ -34,7 +43,7 @@ export default function LandlordProfileScreen() {
         </View>
 
         <View className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => router.push('/(onboarding)/role-choice')}
             className="p-4 border-b border-gray-100 flex-row justify-between items-center"
           >
