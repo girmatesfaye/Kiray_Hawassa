@@ -1,11 +1,14 @@
 import { Tabs, Redirect } from 'expo-router';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/app/_layout';
 import { Colors } from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 
 export default function StaffLayout() {
   const { role, isLoading } = useAuth();
+  const insets = useSafeAreaInsets();
 
   if (isLoading) {
     return <View style={{ flex: 1, backgroundColor: Colors.background }} />;
@@ -24,10 +27,10 @@ export default function StaffLayout() {
         tabBarActiveTintColor: '#1d4ed8',
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
-          height: 62,
+          height: 56 + insets.bottom,
           borderTopWidth: 1,
           borderTopColor: '#F3F4F6',
-          paddingBottom: 8,
+          paddingBottom: insets.bottom + 6,
           paddingTop: 6,
           backgroundColor: '#FFFFFF',
         },
@@ -35,30 +38,42 @@ export default function StaffLayout() {
         tabBarLabelStyle: { fontSize: 11, fontFamily: FontFamily.semiBold, fontWeight: '600' },
       }}
     >
+      {/* ── 3 visible tabs ─────────────────────────────────────────── */}
       <Tabs.Screen
         name="leads"
         options={{
           title: 'Leads',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📋</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'people' : 'people-outline'} size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="schedule"
         options={{
           title: 'Schedule',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📅</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="earnings"
         options={{
           title: 'Earnings',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>💰</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'cash' : 'cash-outline'} size={22} color={color} />
+          ),
         }}
       />
-      {/* Hidden screens — navigable but not shown in tab bar */}
+
+      {/* ── Hidden routes — navigable but never in the tab bar ─────── */}
+      {/* lead/[id] is a detail screen reached by tapping a row, not a top-level destination */}
+      <Tabs.Screen name="lead/[id]" options={{ href: null }} />
       <Tabs.Screen name="add-lead" options={{ href: null }} />
       <Tabs.Screen name="close-deal/[leadId]" options={{ href: null }} />
+      {/* activity.tsx exists in the file system — hide it so it never leaks into the tab bar */}
+      <Tabs.Screen name="activity" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -58,27 +58,21 @@ export default function LandlordListingDetailScreen() {
             resizeMode="cover"
           />
           <View className="p-4">
-            <View className="flex-row justify-between items-start mb-1">
-              <Text className="text-xl font-bold text-gray-900 flex-1 mr-2">
-                {listing.title}
-              </Text>
-              <View
-                className={`px-3 py-1 rounded-full ${
-                  isRentedOut ? 'bg-gray-200' : 'bg-emerald-100'
-                }`}
-              >
-                <Text
-                  className={`text-xs font-bold ${
-                    isRentedOut ? 'text-gray-700' : 'text-emerald-800'
-                  }`}
-                >
-                  {isRentedOut ? '🔒 Rented Out' : '🟢 Available'}
-                </Text>
-              </View>
-            </View>
-            <Text className="text-sm font-extrabold text-emerald-700 mb-2">
+            <Text className="text-xl font-bold text-gray-900 mb-1">
+              {listing.title}
+            </Text>
+            <Text className="text-sm font-extrabold text-primary mb-2" style={{ color: '#a93200' }}>
               {listing.price.toLocaleString()} ETB / month
             </Text>
+            <View className="flex-row items-center gap-2 mb-1">
+              <Text
+                className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                  isRentedOut ? 'bg-gray-100 text-gray-600' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {isRentedOut ? 'Rented Out' : 'Available'}
+              </Text>
+            </View>
             <Text className="text-xs text-gray-500">
               {listing.location_text ?? listing.location}
             </Text>
