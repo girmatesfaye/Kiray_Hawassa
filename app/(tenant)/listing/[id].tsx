@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/app/_layout';
 import ConnectorContactSheet from '@/components/ui/ConnectorContactSheet';
@@ -97,7 +98,7 @@ export default function ListingDetailScreen() {
   };
 
   if (loading) {
-    return <View className="flex-1 bg-white items-center justify-center"><ActivityIndicator color="#b45309" /></View>;
+    return <View className="flex-1 bg-white items-center justify-center"><ActivityIndicator color="#1d4ed8" /></View>;
   }
 
   if (!listing) {
@@ -120,14 +121,14 @@ export default function ListingDetailScreen() {
             onPress={() => router.back()}
             className="absolute top-12 left-4 w-10 h-10 bg-black/50 rounded-full items-center justify-center"
           >
-            <Text className="text-white text-lg font-bold">Back</Text>
+            <Ionicons name="chevron-back" size={22} color="#ffffff" />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleSave}
             disabled={saving}
             className="absolute top-12 right-4 bg-white/90 px-3 py-2 rounded-full"
           >
-            <Text className="text-xs font-bold text-amber-800">{saved ? 'Saved' : 'Save'}</Text>
+            <Text className="text-xs font-bold text-blue-800">{saved ? 'Saved ♥' : 'Save'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -137,7 +138,7 @@ export default function ListingDetailScreen() {
               <Text className="text-2xl font-bold text-gray-900">{listing.title}</Text>
               <Text className="text-sm text-gray-500 mt-1">{listing.location_text || listing.location || listing.subcity}</Text>
             </View>
-            <Text className="text-2xl font-extrabold text-amber-700">{Number(listing.price).toLocaleString()} ETB</Text>
+            <Text className="text-2xl font-extrabold text-blue-700">{Number(listing.price).toLocaleString()} ETB</Text>
           </View>
 
           {rentedOut && (
@@ -171,8 +172,8 @@ export default function ListingDetailScreen() {
               listing.has_electric ? 'Electricity' : null,
               ...(listing.amenities || []),
             ].filter(Boolean).map((feat) => (
-              <View key={String(feat)} className="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
-                <Text className="text-xs font-semibold text-amber-800">{feat}</Text>
+              <View key={String(feat)} className="bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg">
+                <Text className="text-xs font-semibold text-blue-800">{feat}</Text>
               </View>
             ))}
           </View>
@@ -184,7 +185,7 @@ export default function ListingDetailScreen() {
           onPress={handleExpressInterest}
           disabled={interestLoading || rentedOut}
           activeOpacity={0.8}
-          className={`flex-1 py-4 rounded-xl items-center justify-center shadow-sm ${rentedOut ? 'bg-gray-200' : 'bg-amber-700'}`}
+          className={`flex-1 py-4 rounded-xl items-center justify-center shadow-sm ${rentedOut ? 'bg-gray-200' : 'bg-blue-600'}`}
         >
           {interestLoading ? (
             <ActivityIndicator color="#fff" />

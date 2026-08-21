@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 interface HeaderBarProps {
   title: string;
@@ -20,7 +21,7 @@ export default function HeaderBar({ title, showBack = false, rightAction, subtit
             onPress={() => router.back()} 
             className="mr-3 p-1 rounded-full bg-gray-100 active:bg-gray-200"
           >
-            <Text className="text-lg text-gray-700 font-bold px-2">←</Text>
+            <Ionicons name="chevron-back" size={22} color="#374151" />
           </TouchableOpacity>
         )}
         <View>

@@ -47,24 +47,24 @@ export default function LandlordHomeScreen() {
 
   return (
     <ScrollView className="flex-1 bg-gray-50">
-      <View className="bg-emerald-900 p-6 pt-12 rounded-b-3xl">
-        <Text className="text-emerald-200 text-xs font-semibold uppercase">Owner Dashboard</Text>
-        <Text className="text-white text-2xl font-bold mb-4">My Property Listings</Text>
+      <View className="bg-white px-5 pt-12 pb-4 border-b border-gray-100">
+        <Text className="text-gray-400 text-xs font-semibold uppercase tracking-widest">Owner Dashboard</Text>
+        <Text className="text-gray-900 text-2xl font-bold mb-4">My Property Listings</Text>
 
-        <View className="flex-row justify-between bg-emerald-800 p-4 rounded-2xl">
+        <View className="flex-row justify-between bg-gray-100 p-4 rounded-2xl">
           <View className="items-center">
-            <Text className="text-emerald-200 text-xs font-medium">Active Listings</Text>
-            <Text className="text-white text-xl font-bold mt-1">{activeCount}</Text>
+            <Text className="text-gray-500 text-xs font-medium">Active Listings</Text>
+            <Text className="text-gray-900 text-xl font-bold mt-1">{activeCount}</Text>
           </View>
-          <View className="h-8 w-[1px] bg-emerald-700 self-center" />
+          <View className="h-8 w-[1px] bg-gray-300 self-center" />
           <View className="items-center">
-            <Text className="text-emerald-200 text-xs font-medium">Total Inquiries</Text>
-            <Text className="text-white text-xl font-bold mt-1">{totalInterests}</Text>
+            <Text className="text-gray-500 text-xs font-medium">Total Inquiries</Text>
+            <Text className="text-gray-900 text-xl font-bold mt-1">{totalInterests}</Text>
           </View>
-          <View className="h-8 w-[1px] bg-emerald-700 self-center" />
+          <View className="h-8 w-[1px] bg-gray-300 self-center" />
           <View className="items-center">
-            <Text className="text-emerald-200 text-xs font-medium">Deals Closed</Text>
-            <Text className="text-white text-xl font-bold mt-1">{rentedCount}</Text>
+            <Text className="text-gray-500 text-xs font-medium">Deals Closed</Text>
+            <Text className="text-gray-900 text-xl font-bold mt-1">{rentedCount}</Text>
           </View>
         </View>
       </View>
@@ -73,11 +73,11 @@ export default function LandlordHomeScreen() {
         <TouchableOpacity
           onPress={() => router.push('/(landlord)/post/photos')}
           activeOpacity={0.9}
-          className="bg-emerald-700 p-4 rounded-2xl flex-row items-center justify-between mb-6 shadow-sm"
+          className="bg-blue-600 p-4 rounded-2xl flex-row items-center justify-between mb-6 shadow-sm"
         >
           <View>
             <Text className="text-white text-lg font-bold">Post New Property</Text>
-            <Text className="text-emerald-100 text-xs mt-0.5">List a house, apartment, or shop</Text>
+            <Text className="text-blue-100 text-xs mt-0.5">List a house, apartment, or shop</Text>
           </View>
           <View className="w-10 h-10 bg-white/20 rounded-full items-center justify-center">
             <Text className="text-white text-xl font-bold">+</Text>
@@ -87,7 +87,7 @@ export default function LandlordHomeScreen() {
         <View className="flex-row justify-between items-center mb-3">
           <Text className="text-lg font-bold text-gray-900">Your Properties</Text>
           <TouchableOpacity onPress={loadData}>
-            <Text className="text-xs font-bold text-emerald-700">Refresh</Text>
+            <Text className="text-xs font-bold text-blue-600">Refresh</Text>
           </TouchableOpacity>
         </View>
 
@@ -117,21 +117,21 @@ export default function LandlordHomeScreen() {
                 <View className="p-4">
                   <View className="flex-row justify-between items-start mb-1">
                     <Text className="text-base font-bold text-gray-900 flex-1 mr-2">{item.title}</Text>
-                    <Text className="text-base font-extrabold text-emerald-700">{Number(item.price).toLocaleString()} ETB</Text>
+                    <Text className="text-base font-extrabold text-blue-700">{Number(item.price).toLocaleString()} ETB</Text>
                   </View>
                   <Text className="text-xs text-gray-500 mb-2">{item.location_text || item.location || item.subcity}</Text>
 
                   {count > 0 && (
-                    <View className="bg-emerald-50 px-3 py-1.5 rounded-lg mb-3">
-                      <Text className="text-xs font-semibold text-emerald-900">
+                    <View className="bg-blue-50 px-3 py-1.5 rounded-lg mb-3">
+                      <Text className="text-xs font-semibold text-blue-900">
                         {count} tenant{count === 1 ? '' : 's'} interested
                       </Text>
                     </View>
                   )}
 
                   <View className="flex-row items-center justify-between pt-3 border-t border-gray-100">
-                    <View className={`px-2.5 py-1 rounded-full ${rentedOut ? 'bg-gray-100' : 'bg-emerald-50'}`}>
-                      <Text className={`text-xs font-bold ${rentedOut ? 'text-gray-700' : 'text-emerald-800'}`}>
+                    <View className={`px-2.5 py-1 rounded-full ${rentedOut ? 'bg-gray-100' : 'bg-blue-50'}`}>
+                      <Text className={`text-xs font-bold ${rentedOut ? 'text-gray-700' : 'text-blue-800'}`}>
                         {rentedOut ? 'Rented Out' : 'Available'}
                       </Text>
                     </View>

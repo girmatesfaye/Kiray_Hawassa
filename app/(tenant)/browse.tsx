@@ -11,7 +11,7 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
-import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import Animated, { FadeIn, SlideInUp, SlideOutDown, Easing } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchListings, getCoverUrl } from '@/features/listings/api';
@@ -109,33 +109,33 @@ export default function BrowseScreen() {
   return (
     <ScrollView className="flex-1 bg-gray-50">
       {/* ── Header ── */}
-      <View className="bg-amber-900 p-6 pt-12 rounded-b-3xl">
+      <View className="bg-white px-5 pt-12 pb-4 border-b border-gray-100">
         <View className="flex-row justify-between items-center mb-4">
           <View>
-            <Text className="text-amber-200 text-xs font-semibold uppercase">Location</Text>
-            <Text className="text-white text-xl font-bold">Hawassa, Ethiopia</Text>
+            <Text className="text-gray-400 text-xs font-semibold uppercase tracking-widest">Location</Text>
+            <Text className="text-gray-900 text-xl font-bold">Hawassa, Ethiopia</Text>
           </View>
           <View className="flex-row gap-2 items-center">
             {/* Filter button with active indicator */}
             <TouchableOpacity
               onPress={openFilterSheet}
               className={`w-10 h-10 rounded-full items-center justify-center ${
-                hasActiveFilters ? 'bg-amber-500' : 'bg-amber-800'
+                hasActiveFilters ? 'bg-blue-600' : 'bg-gray-100'
               }`}
             >
-              <Ionicons name="options-outline" size={20} color="#ffffff" />
+              <Ionicons name="options-outline" size={20} color={hasActiveFilters ? '#ffffff' : '#374151'} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => router.push('/notifications')}
-              className="w-10 h-10 bg-amber-800 rounded-full items-center justify-center"
+              className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"
             >
-              <Ionicons name="notifications-outline" size={20} color="#ffffff" />
+              <Ionicons name="notifications-outline" size={20} color="#374151" />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Inline search bar — always visible */}
-        <View className="bg-white rounded-xl px-4 py-3 shadow-sm flex-row items-center gap-2">
+        <View className="bg-gray-100 rounded-xl px-4 py-3 flex-row items-center gap-2">
           <Ionicons name="search-outline" size={16} color="#9CA3AF" />
           <TextInput
             className="flex-1 text-gray-900 text-sm"
@@ -160,19 +160,19 @@ export default function BrowseScreen() {
         {hasActiveFilters && (
           <View className="flex-row flex-wrap gap-2 mt-3">
             {subcity.trim().length > 0 && (
-              <View className="bg-amber-700 px-3 py-1 rounded-full flex-row items-center">
-                <Text className="text-white text-xs font-semibold mr-1">📍 {subcity}</Text>
+              <View className="bg-blue-100 px-3 py-1 rounded-full flex-row items-center">
+                <Text className="text-blue-700 text-xs font-semibold mr-1">📍 {subcity}</Text>
               </View>
             )}
             {maxPrice.trim().length > 0 && (
-              <View className="bg-amber-700 px-3 py-1 rounded-full flex-row items-center">
-                <Text className="text-white text-xs font-semibold mr-1">
+              <View className="bg-blue-100 px-3 py-1 rounded-full flex-row items-center">
+                <Text className="text-blue-700 text-xs font-semibold mr-1">
                   Max {Number(maxPrice.replace(/,/g, '')).toLocaleString()} ETB
                 </Text>
               </View>
             )}
-            <TouchableOpacity onPress={clearFilters} className="bg-amber-800 px-3 py-1 rounded-full">
-              <Text className="text-amber-200 text-xs font-semibold">Clear</Text>
+            <TouchableOpacity onPress={clearFilters} className="bg-gray-200 px-3 py-1 rounded-full">
+              <Text className="text-gray-600 text-xs font-semibold">Clear</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -185,7 +185,7 @@ export default function BrowseScreen() {
             key={cat.value}
             onPress={() => setSelectedCategory(cat.value)}
             className={`px-5 py-2.5 rounded-full mr-2 ${
-              selectedCategory === cat.value ? 'bg-amber-700' : 'bg-white border border-gray-200'
+              selectedCategory === cat.value ? 'bg-blue-600' : 'bg-white border border-gray-200'
             }`}
           >
             <Text
@@ -204,7 +204,7 @@ export default function BrowseScreen() {
         <View className="flex-row justify-between items-center mb-3">
           <Text className="text-lg font-bold text-gray-900">Featured Listings</Text>
           <TouchableOpacity onPress={loadListings}>
-            <Text className="text-xs font-bold text-amber-700">Refresh</Text>
+            <Text className="text-xs font-bold text-blue-600">Refresh</Text>
           </TouchableOpacity>
         </View>
 
@@ -238,7 +238,7 @@ export default function BrowseScreen() {
                 <View className="p-4">
                   <View className="flex-row justify-between items-start mb-1">
                     <Text className="text-base font-bold text-gray-900 flex-1 mr-2">{item.title}</Text>
-                    <Text className="text-base font-extrabold text-amber-700">
+                    <Text className="text-base font-extrabold text-blue-700">
                       {Number(item.price).toLocaleString()} ETB
                     </Text>
                   </View>
@@ -270,8 +270,8 @@ export default function BrowseScreen() {
         >
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <Animated.View
-              entering={SlideInDown.duration(280).springify().damping(20)}
-              exiting={SlideOutDown.duration(200)}
+              entering={SlideInUp.duration(320).easing(Easing.out(Easing.cubic))}
+              exiting={SlideOutDown.duration(220).easing(Easing.in(Easing.cubic))}
               style={{
                 backgroundColor: '#FFFFFF',
                 borderTopLeftRadius: 24,
@@ -363,7 +363,7 @@ export default function BrowseScreen() {
                   onPress={applyFilters}
                   style={{
                     flex: 2,
-                    backgroundColor: '#b45309',
+                    backgroundColor: '#1d4ed8',
                     borderRadius: 12,
                     paddingVertical: 14,
                     alignItems: 'center',

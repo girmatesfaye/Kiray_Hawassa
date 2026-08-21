@@ -22,7 +22,7 @@ export default function LandlordListingDetailScreen() {
           </Text>
           <TouchableOpacity
             onPress={() => router.replace('/(landlord)/home')}
-            className="bg-emerald-700 px-6 py-3 rounded-xl"
+            className="bg-blue-600 px-6 py-3 rounded-xl"
           >
             <Text className="text-sm font-bold text-white">Back to Dashboard</Text>
           </TouchableOpacity>
@@ -89,7 +89,7 @@ export default function LandlordListingDetailScreen() {
             </View>
             <TouchableOpacity
               onPress={handleCallConnector}
-              className="bg-emerald-700 px-3.5 py-2 rounded-xl flex-row items-center"
+              className="bg-blue-600 px-3.5 py-2 rounded-xl flex-row items-center"
             >
               <Text className="text-xs font-bold text-white mr-1">📞</Text>
               <Text className="text-xs font-bold text-white">Call Connector</Text>
@@ -99,17 +99,17 @@ export default function LandlordListingDetailScreen() {
 
         {/* Task 4 & Task 7: Commission Receipt Line */}
         {paidPayout ? (
-          <View className="bg-emerald-50 border border-emerald-300 p-4 rounded-2xl mb-4">
+          <View className="bg-blue-50 border border-blue-300 p-4 rounded-2xl mb-4">
             <View className="flex-row items-center mb-1">
               <Text className="text-lg mr-2">🧾</Text>
-              <Text className="text-sm font-extrabold text-emerald-950">
+              <Text className="text-sm font-extrabold text-blue-950">
                 Commission Receipt Confirmed
               </Text>
             </View>
-            <Text className="text-sm font-bold text-emerald-800">
+            <Text className="text-sm font-bold text-blue-800">
               Commission paid: {paidPayout.amount.toLocaleString()} ETB · {new Date(paidPayout.paid_at || paidPayout.created_at).toLocaleDateString()}
             </Text>
-            <Text className="text-xs text-emerald-700 mt-1">
+            <Text className="text-xs text-blue-700 mt-1">
               Thank you for trusting Kiray Hawassa. Your deal has been officially settled.
             </Text>
           </View>

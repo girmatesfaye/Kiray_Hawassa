@@ -24,7 +24,7 @@ export default function TenantLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#b45309',
+        tabBarActiveTintColor: '#1d4ed8',
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
           height: 56 + insets.bottom,

@@ -26,7 +26,7 @@ export default function LandlordLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: '#047857',
+          tabBarActiveTintColor: '#1d4ed8',
           tabBarInactiveTintColor: '#9CA3AF',
           tabBarStyle: {
             height: 56 + insets.bottom,
